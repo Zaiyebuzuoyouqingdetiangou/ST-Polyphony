@@ -28,8 +28,11 @@ test('the formal hearing request prioritizes autonomous offscreen life and prese
  const model=createModelRequester({primary:{url:'https://fixture.invalid/v1',key:'fixture',model:'fixture'},secondary:{}},createModelClient({getHeaders:()=>({}),fetchImpl:async(_url,options)=>{calls++;const wire=JSON.parse(options.body);sent=JSON.parse(wire.messages[1].content);instructions=wire.messages[0].content;const response={...boundary,stages:[{...boundary.stages[0],onstagePersonIds:['P1']}],activities:[],events:[],knowledge:[],calibration:{...empty(),activityUpdates:[{...known('onstage',['P1']),change:{title:'店内清点',description:'林青在店内清点货架',status:'active',participantIds:['P1']}}]}};return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(response)},finish_reason:'stop'}]}),{status:200});}}));
  const result=await generateDevelopment({people,state:current,initial:false,story:{status:'ready',throughSeq:2,turns:[turns[0]],source:{kind:'chat',id:'s'}},dependencies:{materials:material,model}});
  assert.equal(calls,1);assert.deepEqual(sent.narrativeRoles.autonomous.map(person=>person.personId),['P2']);assert.deepEqual(sent.narrativeRoles.storyControlled.map(person=>person.personId),['P1']);assert.equal(sent.activities.find(activity=>activity.id==='shared').id,'shared');
- assert.match(instructions.slice(instructions.indexOf('你只负责“听觉”')).split('\n')[0],/首要.*narrativeRoles\.autonomous.*场外/);assert.match(instructions,/正文校准.*不能.*替代.*场外/);assert.match(instructions,/同一实际事项沿已有ID.*视角另建/);
- assert.equal(result.state.activities.length,2);assert.deepEqual(result.state.activities.find(activity=>activity.id==='shared').participantIds,['p','q']);assert.ok(result.state.activities.some(activity=>activity.title==='店内清点'));assert.deepEqual(result.state.developmentOnstagePersonIds,['p']);
+ assert.match(instructions,/narrativeRoles\.autonomous[^\n]*优先[^\n]*镜头外/u);
+ assert.match(instructions,/calibration只同步正文事实/u);
+ assert.match(instructions,/创作进展不用calibration/u);
+ assert.match(instructions,/同一件事[^\n]*沿已有ID/u);
+ assert.equal(result.state.activities.length,2);assert.deepEqual(result.state.activities.find(activity=>activity.id==='shared').participantIds,['p','q']);assert.ok(result.state.activities.some(activity=>activity.description==='林青在店内清点货架'));assert.deepEqual(result.state.developmentOnstagePersonIds,['p']);
 });
 
 test('formal generation saves known onstage/shared and user-related tasks and carries their UUID into the next projection',async()=>{
@@ -40,7 +43,7 @@ test('formal generation saves known onstage/shared and user-related tasks and ca
  const model=createModelRequester({primary:{url:'https://fixture.invalid/v1',key:'fixture',model:'fixture'},secondary:{}},createModelClient({getHeaders:()=>({}),fetchImpl:async()=>{calls++;return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(reply)},finish_reason:'stop'}]}),{status:200});}}));
  const result=await generateDevelopment({people,state:stored.data,initial:true,story:{status:'ready',throughSeq:2,turns:[turns[0]]},dependencies:{materials:material,model}});
  assert.equal(calls,1);assert.equal(result.state.activities.length,2);assert.equal(result.state.events.length,0);assert.equal(result.state.knowledge.length,0);
- const shared=result.state.activities.find(a=>a.title==='下午交接');assert.deepEqual(shared.participantIds,['p','q']);assert.equal(shared.sources[0].id,'history-floor:2');
+ const shared=result.state.activities.find(a=>a.description==='等待下午共同交接');assert.deepEqual(shared.participantIds,['p','q']);assert.equal(shared.sources[0].id,'history-floor:2');
  const repo=createWorldRepository({async get(){return stored;},async put(_c,_id,data,revision){assert.equal(revision,4);stored={revision:5,data};return stored;}});
  await repo.save('s',result.state,4);const saved=await repo.load('s');
  const nextWindow={id:'next',kind:'elapsed',from:result.window.to,to:{id:'noon',text:'中午',sourceSeqs:[3]},throughSeq:3};
@@ -59,7 +62,7 @@ test('new known tasks require eligible original sources without leaving rejected
 
 test('pre-registering a narrative activity does not exempt new actions involving its onstage participants',()=>{
  const result=applyDevelopment({people,state:state(),initial:true,story:{status:'ready',throughSeq:2,turns:[turns[0]]}},{...boundary,activities:[],events:[{key:'bad',activityId:'joint',title:'替在场者开始交接',participantIds:['q'],...meta,assertedPersonIds:['q']},{key:'good',activityId:'own',title:'整理个人工具',description:'陈明独自整理工具',participantIds:['q'],...meta,assertedPersonIds:['q'],activityChange:{status:'completed'}}],knowledge:[],calibration:{...empty(),activityUpdates:[known('joint'),known('own',['q'])]}});
- assert.equal(result.state.activities.length,2);assert.equal(result.addedEvents,1);assert.equal(result.state.events[0].title,'整理个人工具');
+ assert.equal(result.state.activities.length,2);assert.equal(result.addedEvents,1);assert.equal(result.state.events[0].description,'陈明独自整理工具');
  assert.equal(result.state.activities.find(a=>a.id===result.state.events[0].activityId).status,'waiting');
  assert.deepEqual(result.state.events[0].activityChange,{status:'completed'});assert.ok(result.boundaryRejections.some(r=>r.key==='bad'));
 });
@@ -93,7 +96,7 @@ test('historical new identities cannot cite a later segment floor while an indep
  const allTurns=[turns[0],{seq:4,isUser:false,text:'下午才约定次日交接。'}];
  const reply={initialBasis:{backgrounds:[],activities:[],knowledge:[]},boundaries:[{key:'start',text:'上午',sourceSeqs:[2]},{key:'middle',text:'午前',sourceSeqs:[2]},{key:'end',text:'下午',sourceSeqs:[4]}],segments:[{kind:'elapsed',from:'start',to:'middle',throughSeq:2,activities:[],newEvents:[{key:'valid',activityId:null,title:'独立清点完成',participantIds:['q']}],knowledge:[],calibration:{...empty(),activityUpdates:[known('future',['q'],[4])]}},{kind:'elapsed',from:'middle',to:'end',throughSeq:4,activities:[],newEvents:[{key:'bad-ref',activityId:'future',title:'不能引用未接纳身份',participantIds:['q']}],knowledge:[],quietReason:'本段休息'}]};
  const result=applyTrajectoryBatch(reply,{people,state:state(),turns:allTurns,fromSeq:2,currentThroughSeq:4});
- assert.equal(result.state.activities.length,0);assert.equal(result.addedActivities,0);assert.deepEqual(result.state.events.map(e=>e.title),['独立清点完成']);
+ assert.equal(result.state.activities.length,0);assert.equal(result.addedActivities,0);assert.deepEqual(result.state.events.map(e=>e.description),['独立清点完成']);
 });
 
 test('the legacy window coordinator anchors newly synchronized narrative tasks before its next plan and repository readback',async()=>{
@@ -123,7 +126,7 @@ test('known activity aliases cannot shadow a saved identity or bind the same key
  ];
  for(const activityUpdates of cases)assert.throws(()=>applyCalibration({state:before,people,turns,calibration:{...empty(),activityUpdates},activityRefs:new Map()}),/临时引用重复/);
  const restored=applyCalibration({state:before,people,turns,calibration:{...empty(),activityUpdates:[known('a',['q'])]},activityRefs:new Map()});
- assert.deepEqual(restored.activities.map(a=>a.id),['a','b']);assert.equal(restored.activities[0].title,'下午交接');
+ assert.deepEqual(restored.activities.map(a=>a.id),['a','b']);assert.equal(restored.activities[0].title,'事务a');assert.equal(restored.activities[0].description,'等待下午共同交接');
  assert.deepEqual(before.activities.map(a=>a.status),['waiting','waiting']);
  const refs=new Map([['a','b']]);const next=applyCalibration({state:before,people,turns,calibration:{...empty(),activityUpdates:[{id:'a',change:{status:'completed'},sourceSeqs:[2]}]},activityRefs:refs});
  assert.deepEqual(next.activities.map(a=>a.status),['completed','waiting']);
@@ -131,7 +134,7 @@ test('known activity aliases cannot shadow a saved identity or bind the same key
 
 test('a repeated display of a calibrated key keeps one factual identity and still rejects its onstage creative update',()=>{
  const result=applyDevelopment({people,state:state(),initial:true,story:{status:'ready',throughSeq:2,turns:[turns[0]]}},{...boundary,activities:[{key:'joint',title:'另写概况',description:'不应覆盖正文',status:'active',participantIds:['q'],...meta,assertedPersonIds:['q']}],events:[],knowledge:[],calibration:{...empty(),activityUpdates:[known('joint')]}});
- assert.equal(result.state.activities.length,1);assert.equal(result.state.activities[0].title,'下午交接');assert.equal(result.state.activities[0].status,'waiting');assert.deepEqual(result.state.activities[0].participantIds,['p','q']);
+ assert.equal(result.state.activities.length,1);assert.equal(result.state.activities[0].description,'等待下午共同交接');assert.equal(result.state.activities[0].status,'waiting');assert.deepEqual(result.state.activities[0].participantIds,['p','q']);
  assert.ok(result.boundaryRejections.some(r=>r.kind==='activity'&&r.key==='joint'&&r.reason==='onstage'));
 });
 

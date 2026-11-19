@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 let server; let createStoryHistoryReader;
-test.before(async () => { server = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false }, appType: 'custom' }); ({ createStoryHistoryReader } = await server.ssrLoadModule('/src/host/story-history.ts')); });
+test.before(async () => { server = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' }); ({ createStoryHistoryReader } = await server.ssrLoadModule('/src/host/story-history.ts')); });
 test.after(async () => { await server?.close(); });
 
 const hidden = { schemaVersion: 1, chatId: 'qqj-chat' };
@@ -49,3 +49,10 @@ test('a streaming or empty newest AI is excluded once and a single AI quietly wa
   assert.equal(read().throughSeq,1);
 });
 test('currentOnly initializes from the latest stable exchange rather than replaying the whole history',()=>{const chat=[{mes:'很久以前',is_user:false},{mes:'上一段正文',is_user:false},{mes:'当前用户选择',is_user:true},{mes:'当前稳定结果',is_user:false},{mes:'最新尚可改写',is_user:false}];const reader=createStoryHistoryReader({getContext:()=>({chat})});const current=reader.readStoryHistory({fromSeq:1,scopeId:'s',stableOnly:true,currentOnly:true});assert.deepEqual(current.turns.map(t=>t.seq),[3,4]);assert.equal(current.throughSeq,4);assert.deepEqual(reader.readStoryHistory({fromSeq:1,scopeId:'s',stableOnly:true}).turns.map(t=>t.seq),[1,2,3,4]);});
+for(const host of ['ST','Luker'])test(host+' uses the saved frontier for the latest AI, with streaming and later user floors outside the bound',()=>{
+ const chat=[{mes:'旧正文',is_user:false},{mes:'当前选择',is_user:true},{mes:'已就绪的上一楼',is_user:false}];
+ const context={chat};if(host==='Luker')context.readPluginFloors=({fromSeq,toSeq})=>chat.slice(fromSeq-1,toSeq).map((m,i)=>({...m,seq:fromSeq+i,mesCooked:m.mes}));
+ const reader=createStoryHistoryReader({getContext:()=>context}),read=()=>reader.readStoryHistory({fromSeq:2,scopeId:'s',stableOnly:true,readyThroughSeq:3});
+ assert.equal(read().throughSeq,3);chat.push({mes:'新一楼的用户选择',is_user:true},{mes:'生成中',is_user:false});context.streamingProcessor={isFinished:false,isStopped:false,messageId:4};
+ assert.deepEqual(read().turns.map(t=>t.seq),[2,3]);assert.equal(reader.readStoryHistory({fromSeq:2,scopeId:'s',stableOnly:true,readyThroughSeq:null}).status,'empty');
+});

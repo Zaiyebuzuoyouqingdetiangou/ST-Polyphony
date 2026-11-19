@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createServer} from 'vite';
 let server;test.before(async()=>{server=await createServer({configFile:false,server:{middlewareMode:true,hmr:false,ws:false},appType:'custom'});});test.after(()=>server?.close());
 const people=['p','q','u'].map(id=>({id,displayName:id,description:'普通人物',aliases:[],specialRole:id==='u'?'user':undefined,source:{kind:'plugin',id,label:''}}));
-const event={id:'old',activityId:null,title:'订货确认',description:'已经确认普通订单',participantIds:['p'],storyTime:null,sources:[{kind:'simulation',id:'prior',label:'既有经历'}]};
+const event={id:'old',activityId:null,title:'订货确认',description:'已经确认普通订单',participantIds:['p','q'],storyTime:null,sources:[{kind:'simulation',id:'prior',label:'既有经历'}]};
 const state=()=>({schemaVersion:1,scopeId:'s',foundation:{people:[],groups:[{id:'shop-circle',name:'街区经营组',description:'长期协作',members:['p','q'].map(personId=>({personId,fromWindowId:'base'})),sources:[],establishedWindowId:'base',currentStateWindowId:'base'}],relations:[]},storyTime:{text:'2027-03-20T08:00'},processedThroughSeq:1,automaticDevelopmentEnabled:false,developmentOnstagePersonIds:['q'],activities:[],events:[event],knowledge:[]});
 const story={status:'ready',throughSeq:2,turns:[{seq:2,isUser:false,text:'q明确离场，p进入镜头。'}],source:{kind:'chat',id:'s',label:''}};
 const stage={key:'now',sourceSeqs:[2],onstagePersonIds:['p'],offstagePersonIds:['q']};
@@ -49,23 +49,36 @@ test('presentation-only answer uses source-owner basis and invalid optional item
  const {applyAtmosphere}=await server.ssrLoadModule('/src/simulation/atmosphere.ts');const {projectSourcePerson}=await server.ssrLoadModule('/src/domain/source-people.ts');const {projectWorldState}=await server.ssrLoadModule('/src/domain/world-state.ts');
  const ps=people.map(p=>({...p,presentationSource:p.id==='p'?{personality:'温和，习惯倾听',relations:'q是p的下属'}:undefined}));
  const input={people:ps,state:state(),story,initial:false,prepared:{materials:[],currentClock:'2027-03-20T09:00'}};
- const result=applyAtmosphere(input,{presentationUpdates:[{personId:'p',temperament:'gentle',profileRelations:[{fromPersonId:'p',toPersonId:'q',fromRole:'上级',toRole:'下属',directed:true},{fromPersonId:'p',toPersonId:'unknown',fromRole:'好友',toRole:'好友',directed:false}]},{personId:'q',temperament:'sharp'},{personId:'unknown',temperament:'gentle'}]});
+ const result=applyAtmosphere(input,{presentationUpdates:[{personId:'p',temperament:'sharp',profileRelations:[{fromPersonId:'p',toPersonId:'q',fromRole:'上级',toRole:'下属',directed:true},{fromPersonId:'p',toPersonId:'unknown',fromRole:'好友',toRole:'好友',directed:false}]},{personId:'q',temperament:'sharp'},{personId:'unknown',temperament:'gentle'}]});
  assert.equal(result.changed,true);assert.equal(result.state.processedThroughSeq,1);assert.equal(result.state.storyTime.text,input.state.storyTime.text);
- const projected=projectWorldState('s',ps.map(projectSourcePerson),result.state);assert.equal(projected.people[0].temperament,'gentle');assert.equal(projected.people[1].temperament,undefined);assert.deepEqual(projected.profileRelations,[{fromPersonId:'p',toPersonId:'q',fromRole:'上级',toRole:'下属',directed:true}]);
+ assert.equal(result.state.developmentPresentation[0].temperament,undefined);
+ const projected=projectWorldState('s',ps.map(projectSourcePerson),result.state);assert.equal(projected.people[0].temperament,'gentle');assert.equal(projected.people[1].temperament,'unknown');assert.deepEqual(projected.profileRelations,[{fromPersonId:'p',toPersonId:'q',fromRole:'上级',toRole:'下属',directed:true}]);
  const changed=ps.map(p=>p.id==='p'?{...p,presentationSource:{personality:'温和，习惯倾听',relations:''}}:p);
  const stale=projectWorldState('s',changed.map(projectSourcePerson),result.state);assert.deepEqual(stale.profileRelations,[]);assert.equal(stale.people[0].temperament,'gentle');
  const unchanged=applyAtmosphere({...input,state:result.state},{atmosphereUpdates:[]});assert.deepEqual(unchanged.state.developmentPresentation,result.state.developmentPresentation);
 });
-test('only missing valid source hints are requested in the same emotion call',async()=>{
- const {generateAtmosphere}=await server.ssrLoadModule('/src/simulation/atmosphere.ts');let request;
- const ps=people.map(p=>({...p,presentationSource:p.id==='p'?{personality:'谨慎克制',relations:'q与p是同事'}:undefined}));
- await generateAtmosphere({people:ps,state:state(),story,initial:false,prepared:{materials:[],currentClock:null},dependencies:{model:{async request(r){request=r;return {atmosphereUpdates:[]};}}}});
- assert.equal(request.input.presentationRequests.length,1);assert.equal(request.input.presentationRequests[0].personId,'p');assert.equal(request.input.presentationRequests[0].personality,'谨慎克制');
+test('taste and construction request only missing explicit relations for display',async()=>{
+ const {generateAtmosphere}=await server.ssrLoadModule('/src/simulation/atmosphere.ts');
+ const {generateWorldConstruction}=await server.ssrLoadModule('/src/simulation/world-construction.ts');
+ const ps=people.map(p=>({...p,presentationSource:p.id==='p'?{personality:'谨慎克制',relations:'q与p是同事'}:{personality:'温柔',relations:''}}));
+ const calls=[];
+ const dependencies={model:{async request(request){
+  calls.push(request);return {foundation:{people:[],groups:[],relations:[]},atmosphereUpdates:[]};
+ }}};
+ for(const generate of [generateAtmosphere,generateWorldConstruction])await generate({people:ps,state:state(),story,initial:false,prepared:{materials:[],currentClock:null},dependencies});
+ assert.deepEqual(calls.map(r=>r.task),['atmosphere','world-construction']);
+ for(const request of calls){
+  assert.deepEqual(request.input.presentationRequests,[{personId:'p',identityRelations:'q与p是同事'}]);
+  assert.match(request.instructions,/presentationUpdates.*identityRelations/);
+  assert.doesNotMatch(request.instructions,/temperament|gentle\/bright/);
+ }
 });
 test('display hints do not feed the story and unrequested classifications cannot wash a stable face',async()=>{
  const {applyAtmosphere,generateAtmosphere}=await server.ssrLoadModule('/src/simulation/atmosphere.ts');const {generateDevelopment}=await server.ssrLoadModule('/src/simulation/development.ts');
- const ps=people.map(p=>({...p,presentationSource:p.id==='p'?{personality:'温和',relations:'q是同事'}:undefined}));const input={people:ps,state:state(),story,initial:false,prepared:{materials:[],currentClock:null}};
+ const legacy={basisKey:'legacy',value:'sharp'};
+ const ps=people.map(p=>({...p,presentationSource:p.id==='p'?{personality:'温和',relations:'q是同事'}:undefined}));const input={people:ps,state:{...state(),developmentPresentation:[{personId:'p',temperament:legacy}]},story,initial:false,prepared:{materials:[],currentClock:null}};
  const first=applyAtmosphere(input,{atmosphereUpdates:[{...row,visual:{temperature:'warm',rhythm:'agitated'}}],presentationUpdates:[{personId:'p',temperament:'gentle',profileRelations:[]}]});
+ assert.deepEqual(first.state.developmentPresentation[0].temperament,legacy);
  const second=applyAtmosphere({...input,state:first.state},{presentationUpdates:[{personId:'p',temperament:'sharp',profileRelations:[{fromPersonId:'p',toPersonId:'q',fromRole:'朋友',toRole:'朋友',directed:false}]}]});assert.deepEqual(second.state.developmentPresentation,first.state.developmentPresentation);
  const requests=[],dependencies={model:{async request(r){requests.push(r);return r.task==='atmosphere'?{atmosphereUpdates:[]}:{quietReason:'等待'};}}};
  await generateAtmosphere({...input,state:first.state,dependencies});await generateDevelopment({...input,state:first.state,dependencies});

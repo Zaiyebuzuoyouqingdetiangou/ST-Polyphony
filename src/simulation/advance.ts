@@ -1,5 +1,6 @@
 import type { AdvanceDependencies, AdvanceResult, QuestionMaterial, StoryInput } from '../application/contracts';
 import type { SourcePerson } from '../domain/source-people';
+import {recordBody} from '../domain/world';
 import type { Activity, ActivityStatus, Knowledge, SourceRef } from '../domain/world';
 import type { NpcWorldState } from '../domain/world-state';
 import { isEffectiveEvent } from '../domain/world-facts';
@@ -178,21 +179,21 @@ export async function advanceBatch(input: { people: SourcePerson[]; state: NpcWo
     const reference = typeof item.id === 'string' ? item.id.trim() : '';
     const resolved = knownActivityRefs.get(reference) ?? reference;
     const existingId = savedActivityIds.has(resolved) ? resolved : '';
-    const title = typeof item.title === 'string' ? item.title.trim() : '';
     const key = typeof item.key === 'string' ? item.key.trim() : '';
     const participantValue = item.participantIds ?? item.personIds;
     const normalizedParticipants = idList(participantValue);
     const explicitParticipants = normalizedParticipants.present;
     const participants = normalizedParticipants.ids.filter(personId => allIds.includes(personId));
     skipped += normalizedParticipants.invalidCount + normalizedParticipants.ids.filter(personId => !allIds.includes(personId)).length;
-    if (!existingId && (!title || !participants.some(personId => allowedPeople.has(personId)))) { skipped++; continue; }
+    const body = recordBody(item);
+    if (!existingId && (!body || !participants.some(personId => allowedPeople.has(personId)))) { skipped++; continue; }
     if (existingId && explicitParticipants && normalizedParticipants.ids.length > 0 && !participants.length) { skipped++; continue; }
     const id = existingId || uuid();
     for (const alias of [key, reference].filter(Boolean)) if (!duplicateActivityKeys.has(alias)) activityIds.set(alias, id);
     const old = byId.get(id);
     if (authority.activities.find(a => a.id === id)?.sources.some(s => s.kind === 'manual')) continue;
     if (old?.sources.some(s => s.kind === 'manual')) continue;
-    const rawDescription = typeof item.description === 'string' ? item.description.trim() : '';
+    const rawDescription = typeof item.description === 'string' && item.description.trim() ? item.description : '';
     const statusProvided = Object.hasOwn(item, 'status');
     const parsedStatus = statusProvided ? status(item.status) : null;
     if (statusProvided && parsedStatus === null) statusNotices++;
@@ -200,14 +201,14 @@ export async function advanceBatch(input: { people: SourcePerson[]; state: NpcWo
       const change = activityChange({ ...item, ...(parsedStatus ? { status: parsedStatus } : {}), ...(explicitParticipants ? { participantIds: participants } : {}) }, new Set(allIds));
       if (Object.keys(change).length) historicalChanges.set(id, change);
       // 未知的过去字段不从当前概况补齐；已知身份仍能关联本段结果。
-      if (!title || !participants.length || !parsedStatus) continue;
+      if (!body || !participants.length || !parsedStatus) continue;
     }
-    const description = existingId ? old?.description?.trim() || title || old?.title || '未命名活动' : rawDescription || title || '未命名活动';
-    const historicalDescription = input.basis && existingId && !old ? rawDescription : description;
+    const description = old ? recordBody(old) : body;
+    const historicalDescription = input.basis && existingId && !old ? body : description;
     const progressOnlyDescription = !!existingId && !!rawDescription && rawDescription !== old?.description?.trim();
     if (progressOnlyDescription) unrecordedProgress++;
-    const activity: Activity = { ...old, id, title: title || old?.title || '未命名活动', description: historicalDescription, status: statusProvided && parsedStatus ? parsedStatus : old?.status ?? 'planned', participantIds: explicitParticipants ? participants : old?.participantIds ?? [], sources: old?.sources ?? [source] };
-    const changed = !old || activity.title !== old.title || activity.status !== old.status || !sameIds(activity.participantIds, old.participantIds);
+    const activity: Activity = { ...old, id, description: historicalDescription, status: statusProvided && parsedStatus ? parsedStatus : old?.status ?? 'planned', participantIds: explicitParticipants ? participants : old?.participantIds ?? [], sources: old?.sources ?? [source] };
+    const changed = !old || activity.status !== old.status || !sameIds(activity.participantIds, old.participantIds);
     if (!changed) { if (!progressOnlyDescription) unchangedActivities++; continue; }
     byId.set(id, activity); changedActivities.add(id);
     if (!historicalChanges.has(id)) adopted = true;
@@ -216,7 +217,6 @@ export async function advanceBatch(input: { people: SourcePerson[]; state: NpcWo
   const addedEvents = [] as NpcWorldState['events'];
   for (const value of result.events) {
     const item = record(value); if (!item) { skipped++; continue; }
-    const title = typeof item.title === 'string' ? item.title.trim() : '';
     const key = typeof item.key === 'string' ? item.key.trim() : '';
     const hasExplicitId = typeof item.id === 'string' && !!item.id.trim();
     const explicitId = typeof item.id === 'string' ? item.id.trim() : '';
@@ -224,15 +224,15 @@ export async function advanceBatch(input: { people: SourcePerson[]; state: NpcWo
     if (hasExplicitId) { if (key && !duplicateEventKeys.has(key)) eventIds.set(key, explicitId); continue; }
     const activityReference = typeof item.activityId === 'string' ? item.activityId.trim() : '';
     const activityId = duplicateActivityKeys.has(activityReference) ? null : (activityIds.get(activityReference) ?? activityReference) || null;
-    if (!title || !activityId || !byId.has(activityId) && !savedActivityIds.has(activityId)) { skipped++; continue; }
+    const description = recordBody(item);
+    if (!description || !activityId || !byId.has(activityId) && !savedActivityIds.has(activityId)) { skipped++; continue; }
     const normalizedParticipants = idList(item.participantIds ?? item.personIds);
     const participants = normalizedParticipants.ids.filter(id => allIds.includes(id));
     skipped += normalizedParticipants.invalidCount + normalizedParticipants.ids.filter(id => !allIds.includes(id)).length;
     const id = uuid(); if (key && !duplicateEventKeys.has(key)) eventIds.set(key, id);
-    const description = typeof item.description === 'string' && item.description.trim() ? item.description.trim() : title;
     const change = (byId.get(activityId) ?? authority.activities.find(a => a.id === activityId))?.sources.some(s => s.kind === 'manual') ? {} : activityChange(item.activityChange, new Set(allIds));
     const actualTime = typeof item.storyTime === 'string' && item.storyTime.trim() ? item.storyTime.trim() : actualWindow ? source.label : next.storyTime?.text;
-    addedEvents.push({ id, activityId, title, description, storyTime: actualTime ? { text: actualTime, source } : null, participantIds: participants, sources: [source], ...(input.window ? { simulationWindowId: input.window.id } : {}), ...(Object.keys(change).length ? { activityChange: change } : {}), ...(Array.isArray(item.continuingForPersonIds) ? { continuingForPersonIds: stringsForPeople(item.continuingForPersonIds, allIds) } : {}) });
+    addedEvents.push({ id, activityId, description, storyTime: actualTime ? { text: actualTime, source } : null, participantIds: participants, sources: [source], ...(input.window ? { simulationWindowId: input.window.id } : {}), ...(Object.keys(change).length ? { activityChange: change } : {}), ...(Array.isArray(item.continuingForPersonIds) ? { continuingForPersonIds: stringsForPeople(item.continuingForPersonIds, allIds) } : {}) });
     adopted = true;
   }
   const knowledge: Knowledge[] = [...authority.knowledge];

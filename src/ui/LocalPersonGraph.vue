@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import {recordBody} from '../domain/world';
 import {computed,ref,onMounted,onBeforeUnmount,watch,nextTick} from 'vue';
 import type {WorldSnapshot,Person,Activity} from '../domain/world';
 import {localNeighbors} from './local-neighborhood';import SmileAvatar from './SmileAvatar.vue';
 const props=defineProps<{world:WorldSnapshot;person:Person;activities:Activity[];atmospheres:Array<{id:string;title:string}>}>();
 const emit=defineEmits<{person:[id:string];activity:[id:string];atmosphere:[id:string]}>();
 const root=ref<HTMLElement>(),focus=ref<HTMLElement>(),paths=ref<Array<{id:string;d:string}>>([]),height=ref(160),positions=ref<Record<string,{left:string;top:string}>>({});
-const contexts=computed(()=>[...props.activities.map(a=>({id:a.id,title:a.title,kind:'activity'})),...props.atmospheres.map(a=>({id:a.id,title:a.title,kind:'atmosphere'}))]);
+const contexts=computed(()=>[...props.activities.map(a=>({id:a.id,title:recordBody(a),kind:'activity'})),...props.atmospheres.map(a=>({id:a.id,title:a.title,kind:'atmosphere'}))]);
 const neighbors=computed(()=>localNeighbors(props.world,props.person.id));
 let observer:ResizeObserver|undefined;
 function drawLines(){

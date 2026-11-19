@@ -5,10 +5,11 @@ import {recordDiagnostic,diagnosticError,type DiagnosticTrace} from '../diagnost
 export class StorageError extends Error {
   constructor(readonly status: number, readonly code: string, message: string) { super(message); this.name = 'StorageError'; }
 }
+export interface BainiaoBatchRow {recordId:string;status:number;envelope?:{revision:number;data:unknown}}
 
 export function createBainiaoClient({ fetchImpl = (...args: Parameters<typeof fetch>) => fetch(...args), getHeaders = () => getHostContext()?.getRequestHeaders?.() as HeadersInit ?? {}, baseUrl = '' }: { fetchImpl?: typeof fetch; getHeaders?: () => HeadersInit; baseUrl?: string } = {}) {
-  async function request(collection: string, id: string, method: 'GET' | 'PUT', body?: unknown, diagnostic?:DiagnosticTrace) {
-    const url = `${baseUrl.replace(/\/$/, '')}/api/plugins/st-bainiaodata/v1/records/st-dollars/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`;
+  async function request(path:string,method:'GET'|'PUT'|'POST',body?:unknown,diagnostic?:DiagnosticTrace) {
+    const url = `${baseUrl.replace(/\/$/, '')}/api/plugins/st-bainiaodata/v1/${path}`;
     let response: Response;
     let raw: string;
     try {
@@ -21,16 +22,29 @@ export function createBainiaoClient({ fetchImpl = (...args: Parameters<typeof fe
     recordDiagnostic(diagnostic,'storage-response',()=>({httpStatus:response.status,returnedRevisionPresent:Object.hasOwn(payload,'revision'),ackRevision:typeof payload.revision==='number'?payload.revision:null,returnedDataPresent:Object.hasOwn(payload,'data'),code:response.ok?'':payload.error}));
     if (!response.ok) {
       const code = String(payload.error ?? (response.status === 409 ? 'conflict' : 'storage_error'));
-      const message = response.status === 409 ? '数据已被其他更新修改，请重新读取后再推进。' : method === 'GET' ? '读取百面相数据失败，请重新打开页面后再试。' : response.status === 0 ? '保存结果暂时无法确认，请重新读取当前数据。' : '保存百面相数据失败，请重新读取当前数据后再决定下一步。';
+      const message = response.status === 409 ? '数据已被其他更新修改，请重新读取后再推进。' : method !== 'PUT' ? '读取百面相数据失败，请重新打开页面后再试。' : response.status === 0 ? '保存结果暂时无法确认，请重新读取当前数据。' : '保存百面相数据失败，请重新读取当前数据后再决定下一步。';
       throw new StorageError(response.status, code, message);
     }
     return payload;
   }
+  const record=(collection:string,id:string)=>`records/st-dollars/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`;
+  async function batch(collection:string,method:'POST'|'PUT',body:unknown,diagnostic?:DiagnosticTrace):Promise<BainiaoBatchRow[]> {
+    const payload=await request(`record-batch/st-dollars/${encodeURIComponent(collection)}`,method,body,diagnostic);
+    if(!Array.isArray(payload))throw new StorageError(200,'invalid_response','白鳥返回的批量结果无法读取。');
+    return payload;
+  }
   return {
+    async listRecordIds(collection:string):Promise<string[]> {
+      const result=await request('record-ids/st-dollars/'+encodeURIComponent(collection),'GET');
+      if(!Array.isArray(result))throw new StorageError(200,'invalid_response','白鳥返回的消息目录无法读取。');
+      return result.filter((id):id is string=>typeof id==='string');
+    },
     async get(collection: string, id: string) {
-      try { return await request(collection, id, 'GET'); }
+      try { return await request(record(collection,id),'GET'); }
       catch (error) { if (error instanceof StorageError && error.status === 404) return null; throw error; }
     },
-    put(collection: string, id: string, data: unknown, expectedRevision: number, diagnostic?:DiagnosticTrace) { return request(collection, id, 'PUT', { data, expectedRevision },diagnostic); },
+    put(collection: string, id: string, data: unknown, expectedRevision: number, diagnostic?:DiagnosticTrace) { return request(record(collection,id),'PUT',{data,expectedRevision},diagnostic); },
+    readBatch(collection:string,recordIds:string[]) {return batch(collection,'POST',{recordIds});},
+    writeBatch(collection:string,records:Array<{recordId:string;data:unknown;expectedRevision:number}>,diagnostic?:DiagnosticTrace) {return batch(collection,'PUT',{records},diagnostic);},
   };
 }

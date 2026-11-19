@@ -1,4 +1,6 @@
+import type {EmotionState} from './emotion';
 import type {Temperament,PresentationSource,ProfileRelation,AtmosphereVisual} from './presentation';
+import type {PublicMessageRef} from './public-messages';
 export interface SourceRef {
   kind: 'character' | 'world-book' | 'chat' | 'manual' | 'plugin' | 'simulation';
   id: string;
@@ -37,7 +39,8 @@ export interface KnowledgeCorrection { byEventId: string; treatment: 'invalidate
 
 export interface Activity {
   id: string;
-  title: string;
+  /** Legacy title, retained for old records. */
+  title?: string;
   status: ActivityStatus;
   description: string;
   participantIds: string[];
@@ -50,7 +53,8 @@ export interface WorldEvent {
   id: string;
   /** The activity this result belongs to; null only for a world-level event. */
   activityId: string | null;
-  title: string;
+  /** Legacy title, retained for old records. */
+  title?: string;
   description: string;
   storyTime: StoryTime | null;
   participantIds: string[];
@@ -60,6 +64,12 @@ export interface WorldEvent {
   correction?: EventCorrection;
   continuingForPersonIds?: string[];
   eventLinks?: Array<{eventId:string;kind:'continues'|'caused-by'}>;
+}
+
+/** The saved prose is authoritative. Title-only legacy records remain readable. */
+export function recordBody(record: {description?: unknown; title?: unknown}): string {
+  if (typeof record.description === 'string' && record.description.trim()) return record.description;
+  return typeof record.title === 'string' ? record.title.trim() : '';
 }
 
 export interface Knowledge {
@@ -83,6 +93,7 @@ export interface DevelopmentAtmosphere {
   sources: SourceRef[];
   basisEventIds: string[];
   visual?: AtmosphereVisual;
+  emotion?: EmotionState;
   basisMaterialRefs?: string[];
   sourceSeqs?: number[];
   storyTime?: StoryTime;
@@ -95,6 +106,8 @@ export interface WorldSnapshot {
   people: Person[];
   /** Current narrative scene ownership, projected from the saved world for display. */
   developmentOnstagePersonIds?: readonly string[];
+  lastHearingWindow?: {id:string; checkpointActivityIds?:readonly string[]};
+  publicMessageIndex?:PublicMessageRef[];
   activities: Activity[];
   events: WorldEvent[];
   knowledge: Knowledge[];

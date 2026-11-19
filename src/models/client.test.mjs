@@ -34,6 +34,29 @@ test('model client uses host forwarding, preserves the owned key, and fails clos
   await assert.rejects(upstreamFailure.generate(profile, [], 10), error => error.httpStatus === 503 && /HTTP 503/.test(error.message));
 });
 
+test('generation sends only the budget field supported by the selected model', async () => {
+  const cases = [
+    ['gpt-6-luna', 'max_completion_tokens'],
+    ['openai/gpt-5.1', 'max_completion_tokens'],
+    ['O3-mini', 'max_completion_tokens'],
+    ['gemini-3.8-flash', 'max_tokens'],
+    ['gpt-60-example', 'max_tokens'],
+  ];
+  const sent = [];
+  const client = createModelClient({ getProcessingPrompt: () => '', fetchImpl: async (path, options) => {
+    assert.equal(path, '/api/backends/chat-completions/generate');
+    sent.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'OK' } }] }));
+  } });
+  for (const [model] of cases) await client.generate({ ...profile, model }, [], 2048);
+  assert.equal(sent.length, cases.length);
+  for (const [index, [model, field]] of cases.entries()) {
+    const payload = sent[index];
+    assert.equal(payload.model, model);
+    assert.deepEqual(Object.entries(payload).filter(([key]) => ['max_tokens','max_completion_tokens'].includes(key)), [[field, 2048]], model);
+  }
+});
+
 test('model client normalizes shared and independent API URLs using QQJ routing rules', async () => {
   assert.equal(normalizeApiUrl(' https://host.example/// '), 'https://host.example/v1');
   assert.equal(normalizeApiUrl('http://host.example:8123'), 'http://host.example:8123/v1');

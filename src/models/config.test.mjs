@@ -112,3 +112,62 @@ test('reading an absent shared pool is pure, while confirmed preset creation ini
     if (oldLuker === undefined) delete globalThis.Luker; else globalThis.Luker = oldLuker;
   }
 });
+
+test('renaming the live shared preset changes only its name, without backend settings writes or revived IDs', async () => {
+  const oldST = globalThis.SillyTavern, oldLuker = globalThis.Luker;
+  try {
+    let saves = 0, reads = 0, puts = 0;
+    const context = { extensionSettings: { 'st-dollars': { marker: 'own' }, 'schedule-planner': { apiPresetActiveId: 'p', utilityPresetId: 'p', marker: 'shared', apiPresets: [
+      { id: 'p', name: '旧名', url: 'https://saved.invalid', key: 'key', model: 'saved', timeoutSec: 79, stream: true, qqjTemperature: 0, vendor: { keep: 1 } },
+      { id: 'other', name: '其它', unknown: 'untouched' }, null, 'opaque-entry', { unknown: 'no-id' },
+    ] } }, saveSettingsDebounced() { saves++; } };
+    globalThis.SillyTavern = { getContext: () => context };
+    const record = { data: { primaryPresetId: 'p', secondaryPresetId: 'other', secondaryFollowsPrimary: true, primary: { url: 'https://own.invalid', key: 'own', model: 'own' } }, revision: 3 };
+    const client = { async get() { reads++; return record; }, async put() { puts++; throw Error('rename must not write the backend'); } };
+    const config = createConfigService(client);
+    assert.equal(typeof config.renamePreset, 'function');
+    await assert.rejects(config.renamePreset('p', ' '), /名称/); assert.equal(saves, 0);
+    context.extensionSettings['schedule-planner'].apiPresets[0] = { ...context.extensionSettings['schedule-planner'].apiPresets[0], url: 'https://changed-by-other.invalid', vendor: { keep: 2 }, late: true };
+    const before = structuredClone(context.extensionSettings), backend = structuredClone(record);
+    await config.renamePreset('p', ' 新名称 ');
+    before['schedule-planner'].apiPresets[0].name = '新名称';
+    assert.deepEqual(context.extensionSettings, before); assert.deepEqual(record, backend);
+    assert.equal(reads, 0); assert.equal(puts, 0); assert.equal(saves, 1);
+    const snapshot = await config.getConfig(); assert.equal(snapshot.presets.find(item => item.id === 'p').name, '新名称');
+    assert.equal(snapshot.primaryPresetId, 'p'); assert.equal(snapshot.secondaryPresetId, 'other'); assert.equal(snapshot.secondaryFollowsPrimary, true);
+    context.extensionSettings['schedule-planner'].apiPresets = [];
+    await assert.rejects(config.renamePreset('p', '不复活'), /不存在|失效/);
+    assert.deepEqual(context.extensionSettings['schedule-planner'].apiPresets, []); assert.equal(saves, 1);
+  } finally {
+    if (oldST === undefined) delete globalThis.SillyTavern; else globalThis.SillyTavern = oldST;
+    if (oldLuker === undefined) delete globalThis.Luker; else globalThis.Luker = oldLuker;
+  }
+});
+
+test('global API creation is unbound even for the first shared connection and captured edits preserve route changes', async () => {
+ const oldST=globalThis.SillyTavern,oldLuker=globalThis.Luker;
+ try {
+  let saves=0,puts=0;const context={extensionSettings:{'schedule-planner':{apiPresets:[]}},saveSettingsDebounced(){saves++;}};globalThis.SillyTavern={getContext:()=>context};
+  let record=null;const client={async get(){return record;},async put(_c,_id,data,revision){puts++;record={data,revision:revision+1};}};const config=createConfigService(client);
+  assert.equal(typeof config.createPreset,'function');const first=await config.createPreset('首套',{url:'https://first.invalid',key:'first-key',model:'first-model'});
+  assert.equal(record,null);assert.equal(puts,0);assert.equal((await config.getConfig()).primaryPresetId,'');await assert.rejects(createConfigService(client).getProfiles(),/主模型/);assert.equal(saves,1);
+  await config.selectApi('primary',{mode:'preset',presetId:first});const captured={role:'primary',presetId:first};
+  context.extensionSettings['schedule-planner'].apiPresets.push({id:'b',name:'B',url:'https://b.invalid',key:'b-key',model:'b-model'});await config.selectApi('primary',{mode:'preset',presetId:'b'});const backend=structuredClone(record);
+  await config.saveEditor('primary',{name:'新名',url:'https://edited.invalid',key:'',model:'edited-model'},captured);
+  assert.deepEqual(record,backend);assert.deepEqual(await config.getProfiles(),{primary:{url:'https://b.invalid',key:'b-key',model:'b-model'},secondary:{url:'https://b.invalid',key:'b-key',model:'b-model'},secondaryFollowsPrimary:true});
+  const edited=context.extensionSettings['schedule-planner'].apiPresets.find(p=>p.id===first);assert.equal(edited.name,'新名');assert.equal(edited.key,'first-key');assert.equal(edited.model,'edited-model');
+  const copy=await config.savePresetAs('primary','未绑定副本',{url:'https://copy.invalid',key:'',model:'copy'},captured,{select:false});assert.notEqual(copy,first);assert.deepEqual(record,backend);assert.equal(context.extensionSettings['schedule-planner'].apiPresets.find(p=>p.id===copy).key,'first-key');
+  context.extensionSettings['schedule-planner'].apiPresets=context.extensionSettings['schedule-planner'].apiPresets.filter(p=>p.id!==first);await assert.rejects(config.saveEditor('primary',{url:'https://stale.invalid',model:'m',key:'k'},captured),/失效|不存在/);
+ }finally{if(oldST===undefined)delete globalThis.SillyTavern;else globalThis.SillyTavern=oldST;if(oldLuker===undefined)delete globalThis.Luker;else globalThis.Luker=oldLuker;}
+});
+
+test('shared editor failure retains concurrent pool fields, opaque entries and external changes',async()=>{
+ const oldST=globalThis.SillyTavern,oldLuker=globalThis.Luker;
+ try {
+  const original={id:'p',name:'原名',url:'https://saved.invalid',key:'key',model:'saved',vendor:{keep:true}};
+  const context={extensionSettings:{'schedule-planner':{apiPresets:[original,null,'opaque']}},async saveSettingsDebounced(){const pool=this.extensionSettings['schedule-planner'].apiPresets;pool.find(p=>p?.id==='p').name='外部名称';pool.push({id:'other',extra:true});throw Error('offline');}};globalThis.SillyTavern={getContext:()=>context};
+  const config=createConfigService({async get(){return null;},async put(){throw Error('must not write backend');}});
+  await assert.rejects(config.saveEditor('primary',{name:'本轮名',url:'https://draft.invalid',model:'draft',key:''},{role:'primary',presetId:'p'}),/offline|保存/);
+  assert.deepEqual(context.extensionSettings['schedule-planner'].apiPresets,[{...original,name:'外部名称'},null,'opaque',{id:'other',extra:true}]);
+ }finally{if(oldST===undefined)delete globalThis.SillyTavern;else globalThis.SillyTavern=oldST;if(oldLuker===undefined)delete globalThis.Luker;else globalThis.Luker=oldLuker;}
+});

@@ -40,13 +40,13 @@ export const gouhuaDialogCss = `
 .sp-day{--sp-shadow:0 8px 40px rgba(0,0,0,.12),0 2px 10px rgba(0,0,0,.07)}
 @media(max-width:640px){.sp-root{position:fixed;top:0;left:0;right:auto;bottom:auto;width:100dvw;height:100dvh;pointer-events:none}}
 @keyframes sp-wi-fullview-in{from{opacity:0}to{opacity:1}}
-.sp-dialog-overlay{position:fixed;inset:0;box-sizing:border-box;z-index:2000002;pointer-events:auto;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px;animation:sp-wi-fullview-in .15s ease-out}
-.sp-dialog-sheet{background-color:var(--sp-sheet-bg-legacy);background-image:linear-gradient(var(--sp-sheet-bg),var(--sp-sheet-bg));border-radius:12px;width:min(400px,calc(100vw - 40px));max-width:100%;padding:16px 18px 14px;box-shadow:var(--sp-shadow);display:flex;flex-direction:column;gap:10px}
+.sp-dialog-overlay{position:absolute;inset:0;width:auto;height:auto;box-sizing:border-box;z-index:2000002;pointer-events:auto;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px;animation:sp-wi-fullview-in .15s ease-out}
+.sp-dialog-sheet{background-color:var(--sp-sheet-bg-legacy);background-image:linear-gradient(var(--sp-sheet-bg),var(--sp-sheet-bg));border-radius:12px;width:400px;max-width:100%;max-height:100%;min-height:0;overflow-y:auto;padding:16px 18px 14px;box-shadow:var(--sp-shadow);display:flex;flex-direction:column;gap:10px}
 .sp-dialog-head{font-size:var(--sp-fs-95);font-weight:600;color:var(--sp-on-surface)}
 .sp-dialog-body{font-size:var(--sp-fs-85);line-height:1.65;color:var(--sp-on-surface);white-space:pre-wrap;word-break:break-word}
 .sp-dialog-note{font-size:var(--sp-fs-75);color:var(--sp-subtle);line-height:1.55;padding:8px 10px;background:var(--sp-hover-bg);border-radius:6px;border-left:2px solid var(--sp-divider)}
-.sp-dialog-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:4px}
-.sp-dialog-button{padding:6px 16px;border-radius:8px;border:none;font-family:var(--sp-font);font-size:var(--sp-fs-83);cursor:pointer;font-weight:500;transition:opacity .15s}
+.sp-dialog-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--qqj-space-group);margin-top:var(--qqj-space-small)}
+.sp-dialog-button{display:inline-flex;align-items:center;justify-content:center;min-height:0;max-width:100%;padding:var(--qqj-button-padding);border:1px solid transparent;border-radius:var(--qqj-button-radius);font-family:var(--sp-font);font-size:var(--qqj-font-body);line-height:var(--qqj-button-line);font-weight:500;white-space:normal;overflow-wrap:anywhere;cursor:pointer;transition:opacity .15s}
 .sp-dialog-button-secondary{background:transparent;color:var(--sp-subtle);border:1px solid var(--sp-divider)}
 .sp-dialog-button-secondary:hover{color:var(--sp-on-surface);border-color:var(--sp-surface-high)}
 .sp-dialog-button-primary{background:var(--sp-primary);color:var(--sp-on-primary)}
@@ -55,9 +55,9 @@ export const gouhuaDialogCss = `
 .sp-dialog-input:focus{border-color:var(--sp-primary)}
 .sp-dialog-input-error{min-height:1em;color:var(--sp-on-surface);font-size:var(--sp-fs-72);line-height:1.4}
 .sp-dialog-input-error i{color:var(--sp-subtle);margin-right:3px}
-.sp-dialog-sheet-custom{max-height:calc(100dvh - 40px);overflow:hidden}
+.sp-dialog-sheet-custom{max-height:100%;overflow:hidden}
 .sp-dialog-custom{min-height:0;overflow-y:auto;overscroll-behavior:contain}
-.sp-dialog-sheet-custom:has(.qqj-editor-dialog){max-height:min(80dvh,calc(100dvh - 40px))}
+.sp-dialog-sheet-custom:has(.qqj-editor-dialog){max-height:min(80dvh,100%)}
 .sp-dialog-sheet-custom:has(.qqj-editor-dialog)>.sp-dialog-custom{flex:1 1 auto;min-height:0}
 .sp-dialog-sheet-custom:has(.qqj-editor-dialog)>.sp-dialog-head,.sp-dialog-sheet-custom:has(.qqj-editor-dialog)>.sp-dialog-input-error,.sp-dialog-sheet-custom:has(.qqj-editor-dialog)>.sp-dialog-actions{flex:0 0 auto}
 .qqj-editor-dialog{display:grid;min-width:0;gap:12px;color:var(--sp-on-surface);font-family:var(--sp-font);font-size:var(--sp-fs-83);line-height:1.55}
@@ -74,11 +74,12 @@ export const gouhuaDialogCss = `
 .qqj-editor-group-summary::before{content:"›";display:inline-block;flex:0 0 12px;width:12px;color:var(--sp-subtle);font-size:var(--sp-fs-95);font-weight:400;line-height:1;transition:transform .15s ease}
 .qqj-editor-dialog details.qqj-editor-group[open]>.qqj-editor-group-summary::before{transform:rotate(90deg)}
 .qqj-editor-dialog label{display:grid;min-width:0;gap:5px;color:var(--sp-subtle);font-size:var(--sp-fs-75);line-height:1.45}
-.qqj-editor-dialog input.settings-input,.qqj-editor-dialog textarea.settings-input,.qqj-editor-dialog select.settings-input{width:100%;min-width:0;margin:0;padding:8px 10px;border:1px solid var(--sp-divider);border-radius:7px;background:var(--sp-sheet-bg);color:var(--sp-on-surface);font:inherit;font-size:var(--sp-fs-83);line-height:1.5}
+.qqj-editor-dialog input.settings-input,.qqj-editor-dialog textarea.settings-input,.qqj-editor-dialog select.settings-input{width:100%;min-width:0;margin:0;padding:var(--qqj-control-pad-y) var(--qqj-control-pad-x);border:1px solid var(--sp-divider);border-radius:var(--qqj-radius-control);background:var(--sp-sheet-bg);color:var(--sp-on-surface);font:inherit;font-size:var(--qqj-font-body);line-height:var(--qqj-control-line);font-weight:400}
+.qqj-editor-dialog input.settings-input,.qqj-editor-dialog select.settings-input{min-height:var(--qqj-control-height)}
 .qqj-editor-dialog textarea{min-height:80px;resize:vertical;white-space:pre-wrap;overflow-wrap:anywhere}
 .qqj-editor-dialog .qqj-editor-textarea{min-height:min(42dvh,360px)}
-.qqj-editor-inline-actions{display:flex;flex-wrap:wrap;gap:7px}
-.qqj-editor-dialog button.secondary-action,.qqj-editor-dialog button.primary-action,.qqj-avatar-crop-panel button.secondary-action,.qqj-avatar-crop-panel a.secondary-action{appearance:none;box-sizing:border-box;min-height:36px;margin:0;padding:7px 11px;border:1px solid var(--sp-divider);border-radius:7px;background:var(--sp-sheet-bg);color:var(--sp-on-surface);font:inherit;font-size:var(--sp-fs-75);line-height:1.4;cursor:pointer}
+.qqj-editor-inline-actions{display:flex;flex-wrap:wrap;gap:calc(7px * var(--qqj-ui-scale, .85))}
+.qqj-editor-dialog button.secondary-action,.qqj-editor-dialog button.primary-action,.qqj-avatar-crop-panel button.secondary-action,.qqj-avatar-crop-panel a.secondary-action{appearance:none;box-sizing:border-box;min-height:0;max-width:100%;margin:0;padding:var(--qqj-button-padding);border:1px solid var(--sp-divider);border-radius:var(--qqj-button-radius);background:var(--sp-sheet-bg);color:var(--sp-on-surface);font:inherit;font-size:var(--qqj-font-body);line-height:var(--qqj-button-line);white-space:normal;overflow-wrap:anywhere;cursor:pointer}
 .qqj-editor-dialog button.primary-action{border-color:var(--sp-primary);background:var(--sp-primary);color:var(--sp-on-primary)}
 .qqj-editor-dialog button:disabled{opacity:.55;cursor:not-allowed}
 .qqj-editor-dialog .qqj-inline-select{position:relative;display:flex;min-width:0;flex:1 1 110px}

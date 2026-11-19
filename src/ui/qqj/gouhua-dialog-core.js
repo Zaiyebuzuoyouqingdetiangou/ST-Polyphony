@@ -2,6 +2,7 @@
 // Source: prepareDialog/mountDialog/choose/confirm/prompt.
 // 本地适配包括焦点、调度、上下文关闭、自定义表单与公开错误提示。
 import { publicErrorMessage } from './public-error.js';
+import { createDialogBackdropHandlers } from '../dialog-layout.js';
 
 const OVERLAY_ID = 'sp-addon-dialog';
 
@@ -49,10 +50,15 @@ export function createGouhuaDialogCore({ $, mount, getRootClass = () => '', subs
         };
         const externalClose = () => finish(null);
         activeCancel = externalClose;
-        $overlay.on('click', function (event) { if (event.target === this) externalClose(); });
+        const backdrop = createDialogBackdropHandlers(externalClose);
+        for (const [type, handler] of Object.entries(backdrop)) $overlay.on(type, handler);
         $overlay.on('keydown', event => {
-            if (event.key !== 'Escape') return;
+            const original = event.originalEvent;
+            if (event.key !== 'Escape' || event.isComposing || original?.isComposing
+                || event.keyCode === 229 || original?.keyCode === 229
+                || event.defaultPrevented || event.isDefaultPrevented?.()) return;
             event.preventDefault();
+            event.stopPropagation?.();
             externalClose();
         });
         $overlay.addClass(String(getRootClass() || ''));

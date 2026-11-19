@@ -15,5 +15,5 @@ export function createPanelGeometryController(options: {
   dragHandle: HTMLElement;
   resizeHandle: HTMLElement;
   storage?: Pick<Storage, 'getItem' | 'setItem'>;
-  viewport?: Pick<Window, 'innerWidth' | 'innerHeight' | 'requestAnimationFrame' | 'cancelAnimationFrame' | 'addEventListener' | 'removeEventListener'>;
+  viewport?: Pick<Window, 'innerWidth' | 'innerHeight' | 'requestAnimationFrame' | 'cancelAnimationFrame' | 'addEventListener' | 'removeEventListener'> & { visualViewport?: VisualViewport | null };
 }): PanelGeometryController;

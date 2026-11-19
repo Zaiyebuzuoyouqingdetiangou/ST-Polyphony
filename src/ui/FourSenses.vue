@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import {computed,ref,watch,nextTick} from 'vue';
-import {tasteCircles} from '../domain/social-circles';
+import {tasteCircles,type TasteCircleEdit} from '../domain/social-circles';
 import {visibleHearingActivities} from './hearing-activities';
 import type {DevelopmentView} from '../application/development';
+import type {SmellGeneration} from '../application/smell-generation';
 import PeopleDrawer from './PeopleDrawer.vue';import OrganIcon from './OrganIcon.vue';
-import type {ControllerState} from '../application/contracts';
+import type {ControllerState,PublicMessageRepository} from '../application/contracts';
 import SmileAvatar from './SmileAvatar.vue';import LocalPersonGraph from './LocalPersonGraph.vue';
-import HearingPage from './HearingPage.vue';import TastePage from './TastePage.vue';import ModuleHealth from './ModuleHealth.vue';
-const props=defineProps<{state:ControllerState;page:string;visible?:boolean;stage?:HTMLElement;development?:DevelopmentView}>();const emit=defineEmits<{navigate:[page:string];affairsActionTarget:[target:HTMLElement|null];hearingActionTarget:[target:HTMLElement|null];tasteActionTarget:[target:HTMLElement|null]}>();
+import HearingPage from './HearingPage.vue';import TastePage from './TastePage.vue';import SmellPage from './SmellPage.vue';import ModuleHealth from './ModuleHealth.vue';
+const props=defineProps<{state:ControllerState;page:string;visible?:boolean;stage?:HTMLElement;panel?:HTMLElement;publicMessages?:Pick<PublicMessageRepository,'read'>;development?:DevelopmentView;smell?:SmellGeneration;enabled?:boolean;editCircle?:(edit:TasteCircleEdit)=>Promise<void>}>();const emit=defineEmits<{navigate:[page:string];affairsActionTarget:[target:HTMLElement|null];smellOpen:[value:boolean]}>();
 const root=ref<HTMLElement>(),graph=ref<HTMLElement>(),selected=ref('');
 const hearing=ref<InstanceType<typeof HearingPage>>(),taste=ref<InstanceType<typeof TastePage>>();
+const smellPage=ref<InstanceType<typeof SmellPage>>();
+defineExpose({closeSmell:()=>smellPage.value?.close()});
 const people=computed(()=>props.state.world.people),person=computed(()=>people.value.find(p=>p.id===selected.value)??people.value[0]);
 watch(people,ps=>{if(!ps.some(p=>p.id===selected.value))selected.value=ps[0]?.id??'';},{immediate:true});
 const currentActivities=computed(()=>visibleHearingActivities(props.state.world).filter(a=>a.status!=='completed'));
@@ -21,8 +24,6 @@ async function jump(page:string,id:string){emit('navigate',page);await nextTick(
 </script>
 <template>
  <div ref="root" class="bmx-four-senses">
-  <div v-if="page==='smell' && (state.error || ['error','unavailable'].includes(state.source.status))" class="bmx-records-notice" role="alert"><p>{{ state.error || state.source.message }}</p></div>
-  <p v-if="page==='smell' && !people.length && !state.error" class="bmx-empty-state">{{ state.source.status!=='ready'&&state.source.message?state.source.message:'暂无人物资料。' }}</p>
   <section v-show="page==='sight'" class="bmx-page" role="tabpanel" aria-labelledby="bmx-tab-sight">
    <ModuleHealth :state="state" :development="development"/>
    <template v-if="person">
@@ -30,9 +31,9 @@ async function jump(page:string,id:string){emit('navigate',page);await nextTick(
     <hr class="bmx-sight-divider"/><div ref="graph"><LocalPersonGraph :world="state.world" :person="person" :activities="tasks" :atmospheres="personMoods" @person="id=>focusPerson(id,true)" @activity="id=>jump('hearing',id)" @atmosphere="id=>jump('taste',id)"/></div>
    </template>
   </section>
-  <HearingPage ref="hearing" v-show="page==='hearing'" :state="state" :development="development" @person="id=>focusPerson(id)" @action-target="emit('hearingActionTarget',$event)"/>
-  <section v-show="page==='smell'" class="bmx-page" role="tabpanel" aria-labelledby="bmx-tab-smell"><div class="bmx-page-heading"><h2>嗅</h2><span>公告与新闻</span></div><div class="bmx-empty-state"><h3>暂无公开消息</h3><p>公告、新闻与广播尚未开始生成。</p></div></section>
-  <TastePage ref="taste" :circles="moods" v-show="page==='taste'" :state="state" :development="development" @person="id=>focusPerson(id)" @action-target="emit('tasteActionTarget',$event)"/>
+  <HearingPage ref="hearing" v-show="page==='hearing'" :state="state" :development="development" :stage="stage" :active="page==='hearing'&&visible!==false" @person="id=>focusPerson(id)"/>
+  <SmellPage ref="smellPage" v-show="page==='smell'" :state="state" :development="development" :active="page==='smell'&&visible!==false" :panel="panel" :reader="publicMessages" :generation="smell" :enabled="enabled" @open="emit('smellOpen',$event)"/>
+  <TastePage ref="taste" :circles="moods" v-show="page==='taste'" :state="state" :development="development" :stage="stage" :active="page==='taste'&&visible!==false" :edit-circle="editCircle" @person="id=>focusPerson(id)"/>
   <Teleport v-if="stage" :to="stage"><PeopleDrawer :people="people" :selected="person?.id??''" :active="page==='sight'&&visible!==false" :stage="stage" @select="id=>focusPerson(id)"/></Teleport>
  </div>
 </template>

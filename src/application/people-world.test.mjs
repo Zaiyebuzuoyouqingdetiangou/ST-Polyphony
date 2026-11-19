@@ -14,6 +14,35 @@ test.after(async () => { await server?.close(); });
 
 const person = { id: 'p1', displayName: 'Mira', aliases: [], description: '长外部档案，不应写入百面相。', source: { kind: 'plugin', id: 'p1', label: '千千结资料' } };
 
+test('manual taste edits persist once, remove a circle from taste and retain the original social facts',async()=>{
+  const other={...person,id:'p2',displayName:'秦乙'},added={...person,id:'p3',displayName:'曲丙'};
+  const group={id:'g',name:'邻里往来',description:'原有关系说明',sources:[person.source],basisEventIds:[],
+    members:[{personId:'p1',fromWindowId:'w'},{personId:'p2',fromWindowId:'w'}],establishedWindowId:'w',currentStateWindowId:'w'};
+  let stored={...createEmptyState('chat'),foundation:{throughSeq:1,windowId:'w',groups:[group],relations:[],people:[]}};
+  let revision=2,saves=0;
+  const app=createPeopleWorld({
+    directory:{readPeople:()=>({status:'ready',message:'',scopeId:'chat',people:[person,other,added]})},
+    repository:{async load(){return {state:stored,revision};},async save(scope,next,expected){
+      assert.equal(scope,'chat');assert.equal(expected,revision);saves++;stored=next;
+      return {state:next,revision:++revision};
+    }},
+  });
+  const circleId='foundation:group:g';
+  await app.refresh();
+  await assert.rejects(()=>app.editTasteCircle({scopeId:'wrong',circleId,kind:'delete'}),/聊天或圈子/);
+  await assert.rejects(()=>app.editTasteCircle({scopeId:'chat',circleId,kind:'update',personIds:['missing']}),/人物目录/);
+  await app.editTasteCircle({scopeId:'chat',circleId,kind:'update',title:'东棚互助圈',personIds:['p1','p3']});
+  assert.equal(saves,1);
+  await app.refresh();
+  assert.deepEqual(app.state.value.world.foundation.groups[0].taste,{manualTitle:'东棚互助圈',personIds:['p1','p3']});
+  await app.editTasteCircle({scopeId:'chat',circleId,kind:'delete'});
+  await assert.rejects(()=>app.editTasteCircle({scopeId:'chat',circleId,kind:'delete'}),/已经不存在/);
+  assert.equal(saves,2);
+  const {taste,...fact}=stored.foundation.groups[0];
+  assert.equal(taste.hidden,true);
+  assert.deepEqual(fact,group);
+});
+
 test('refresh preserves own activities and a successful advance publishes one scoped CAS snapshot', async () => {
   let stored = null; let revision = 0; let saves = 0; let advances = 0;
   const state = createEmptyState('chat-1');

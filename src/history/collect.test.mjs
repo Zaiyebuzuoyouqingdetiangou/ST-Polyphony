@@ -43,7 +43,7 @@ test('history model codes restore through the real collector and a missing parti
   assert.equal(requestInput.people[0].id, 'P1');
   assert.equal(result.modelCalls, 1);
   assert.deepEqual(result.state.activities[0].participantIds, [officialId]);
-  assert.equal(result.state.activities[0].title, 'P1仍是正文');
+  assert.equal(result.state.activities[0].description, 'P1仍是正文');
   assert.equal(result.state.events[0].activityId, result.state.activities[0].id);
   assert.deepEqual(result.state.events[0].participantIds, [officialId]);
 });

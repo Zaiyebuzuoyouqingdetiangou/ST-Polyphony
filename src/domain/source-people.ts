@@ -13,6 +13,8 @@ export interface SourcePerson {
   identitySummary?: string;
   identityCaption?: string;
   presentationSource?: PresentationSource;
+  /** The live public source before a local foundation fills an empty personality. */
+  profilePresentationSource?: PresentationSource;
   qqjPersonId?: string;
   foundationFields?: import('./world-foundation').FoundationFields;
   /** The current public reference stays separate from the locally projected short foundation. */

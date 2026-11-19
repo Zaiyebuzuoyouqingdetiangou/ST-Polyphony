@@ -1,13 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'vite';
+import '../../scripts/source-loader.mjs';
 
-let server; let resolveAppearance; let applyAppearance; let createAppearanceController;
-test.before(async () => {
-  server = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false }, appType: 'custom' });
-  ({ resolveAppearance, applyAppearance, createAppearanceController } = await server.ssrLoadModule('/src/ui/appearance.ts'));
-});
-test.after(async () => { await server?.close(); });
+const { resolveAppearance, createAppearanceController } = await import('./appearance.ts');
 
 function environment(values = {}, systemLight = true) {
   let light = systemLight;
@@ -23,13 +18,20 @@ function environment(values = {}, systemLight = true) {
   return { documentRef, windowRef, root, setSystemLight: value => { light = value; } };
 }
 
-test('auto follows host luminance and QQJ colors, while fixed modes ignore host colors', () => {
+test('follow mode preserves readable host ink and chooses QQJ fallbacks for unreadable surfaces and quote', () => {
   const env = environment({ '--SmartThemeBodyColor': 'rgb(240, 240, 240)', '--SmartThemeQuoteColor': '#ad4438', '--SmartThemeChatTintColor': 'rgba(0, 0, 0, 0.1)', '--SmartThemeBotMesBlurTintColor': 'rgba(255,255,255,.2)', '--SmartThemeUserMesBlurTintColor': 'transparent' });
   const automatic = resolveAppearance({ mode: 'auto', ...env });
-  assert.equal(automatic.effectiveTheme, 'night'); assert.equal(automatic.palette.ink, 'rgb(240, 240, 240)'); assert.equal(automatic.palette.selected, '#ad4438');
-  assert.equal(automatic.palette.base, 'rgb(18, 28, 36)'); assert.equal(automatic.palette.surface, 'rgb(72, 83, 91)');
+  assert.equal(automatic.mode, 'auto');
+  assert.equal(automatic.effectiveTheme, 'night');
+  assert.equal(automatic.apiPalette.ink, 'rgb(240, 240, 240)');
+  assert.equal(automatic.apiPalette.knot, '#d9707a');
+  assert.equal(automatic.apiPalette.paper, 'rgb(17, 22, 24)');
+  assert.equal(automatic.apiPalette.panel, '#1c2327');
   const fixed = resolveAppearance({ mode: 'day', ...env });
-  assert.equal(fixed.effectiveTheme, 'day'); assert.equal(fixed.palette.ink, '#222a2e');
+  assert.equal(fixed.mode, 'day');
+  assert.equal(fixed.effectiveTheme, 'day');
+  assert.equal(fixed.apiPalette.ink, '#22282b');
+  assert.equal(fixed.apiPalette.knot, '#b63745');
 });
 
 test('auto uses system preference only without host body signal; fixed theme does not react to system changes', () => {

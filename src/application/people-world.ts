@@ -4,7 +4,9 @@ import { createEmptyWorld } from '../domain/world';
 import { createEmptyState, projectWorldState, type NpcWorldState } from '../domain/world-state';
 import { projectSourcePerson } from '../domain/source-people';
 import {mergeWorldPeople} from '../domain/world-foundation';
-import type { ControllerDependencies, ControllerState, PeopleDirectoryRead } from './contracts';
+import {isTemperament,type Temperament} from '../domain/presentation';
+import {setTasteCircleSettings,socialContexts,type TasteCircleEdit} from '../domain/social-circles';
+import type { ControllerDependencies, ControllerState, PeopleDirectoryRead, WorldRepository } from './contracts';
 import type { ModelRequest, StoryTurn, TrajectoryView } from './contracts';
 import { checkTrajectory as inspectTrajectory } from './trajectory';
 import { generateTrajectoryBatch, type TrajectoryCandidate } from '../simulation/trajectory-batch';
@@ -22,18 +24,44 @@ export function createPeopleWorld(deps: ControllerDependencies) {
   let trajectoryCandidate: { result: TrajectoryCandidate; revision: number | null; people: PeopleDirectoryRead['people'] } | null = null;
   let stopTrajectory: (() => void) | null = null;
   let directory: PeopleDirectoryRead | null = null;
+  let pendingRefresh: {scopeId:string;directory:PeopleDirectoryRead;done:Promise<void>|null} | null = null;
   let ownState: NpcWorldState | null = null;
   let revision: number | null = null;
   let checked: { scopeId: string; people: PeopleDirectoryRead['people']; baseline: NpcWorldState; revision: number | null; fromSeq: number; throughSeq: number; turns: import('./contracts').StoryTurn[]; uncovered: Array<{ fromSeq: number; toSeq: number }>; batchCharacters: 12000 | 24000 | 48000 } | null = null;
   let pending: { scopeId: string; people: PeopleDirectoryRead['people']; baseline: NpcWorldState; revision: number | null; candidate: NpcWorldState; throughSeq: number; ranges: Array<{ fromSeq: number; toSeq: number }> } | null = null;
   let historySession: HistoryCollectionSession | null = null;
   let stopHistory: (() => void) | null = null;
+  const pendingAvatars=new Map<string,Map<string,Temperament>>();
+  const boundProviderIds=(world:NpcWorldState)=>new Set(world.foundation?.people.flatMap(person=>
+    person.qqjPersonId&&person.qqjPersonId!==person.id?[person.qqjPersonId]:[]));
 
-  const development = createDevelopmentController({ deps, state, refresh, snapshot: () => ({directory, state: ownState, revision}), publish(saved, nextRevision, people) {
+  function projectForView(people:PeopleDirectoryRead['people'],world:NpcWorldState) {
+    const choices=pendingAvatars.get(world.scopeId)??new Map<string,Temperament>();
+    if(choices.size)for(const id of boundProviderIds(world))choices.delete(id);
+    const snapshot=projectWorldState(world.scopeId,people.map(projectSourcePerson),world,choices);
+    if(choices.size)pendingAvatars.set(world.scopeId,choices);
+    else pendingAvatars.delete(world.scopeId);
+    return snapshot;
+  }
+  const repository:WorldRepository={
+    load:scopeId=>deps.repository.load(scopeId),
+    save(scopeId,world,expectedRevision,diagnostic) {
+      const choices=pendingAvatars.get(scopeId);
+      if(choices?.size){
+        const aliases=boundProviderIds(world);
+        const additions=[...choices].filter(([id])=>!aliases.has(id)&&!isTemperament(world.avatarTemperaments?.[id]));
+        if(additions.length)world={...world,avatarTemperaments:{...world.avatarTemperaments,...Object.fromEntries(additions)}};
+      }
+      return deps.repository.save(scopeId,world,expectedRevision,diagnostic);
+    },
+  };
+
+  const development = createDevelopmentController({ deps:{...deps,repository}, state, refresh, snapshot: () => ({directory, state: ownState, revision}), publish(saved, nextRevision, people) {
     ownState = saved; revision = nextRevision;
     const unified=mergeWorldPeople(people,saved);
     if(directory)directory={...directory,people:unified,status:unified.length?'ready':directory.status};
-    state.value = {...state.value, source:directory?{status:directory.status,message:directory.message}:state.value.source, world: projectWorldState(saved.scopeId, unified.map(projectSourcePerson), saved), processedThroughSeq: saved.processedThroughSeq, currentTimeStarted: saved.currentTimeStartedThroughSeq !== undefined};
+    state.value = {...state.value, source:directory?{status:directory.status,message:directory.message}:state.value.source, world:projectForView(unified,saved), processedThroughSeq: saved.processedThroughSeq, currentTimeStarted: saved.currentTimeStartedThroughSeq !== undefined};
+    return unified;
   }});
 
   async function requestCurrentModel(request: ModelRequest) {
@@ -47,24 +75,85 @@ export function createPeopleWorld(deps: ControllerDependencies) {
     return model.request(dispatch);
   }
 
+  function refreshFailed(error:unknown,source:PeopleDirectoryRead|null) {
+    directory=source;ownState=null;revision=null;
+    state.value = { ...state.value, world: { ...createEmptyWorld(), people: source?.people.map(projectSourcePerson) ?? [] }, source: { status: source?.status ?? 'error', message: source?.message ?? '读取千千结人物目录失败。' }, error: error instanceof Error ? error.message : '读取百面相世界数据失败。' };
+  }
+
   async function refresh() {
+    let nextDirectory:PeopleDirectoryRead;
     try {
-      directory = deps.directory.readPeople();
-      if (!directory.scopeId) {
-        ownState = null; revision = null;
-        state.value = { ...state.value, world: { ...createEmptyWorld(), people: directory.people.map(projectSourcePerson) }, processedThroughSeq: null, currentTimeStarted: false, source: { status: directory.status, message: directory.message }, error: '' };
-        return;
-      }
-      const scopeId=directory.scopeId;
-      const loaded = await deps.repository.load(scopeId);
-      ownState = loaded?.state ?? createEmptyState(scopeId);
-      revision = loaded?.revision ?? null;
-      directory={...directory,people:mergeWorldPeople(directory.people,ownState)};
-      if(directory.people.length&&['empty','waiting'].includes(directory.status))directory.status='ready';
-      state.value = { ...state.value, world: projectWorldState(scopeId, directory.people.map(projectSourcePerson), ownState), processedThroughSeq: ownState.processedThroughSeq, currentTimeStarted: ownState.currentTimeStartedThroughSeq !== undefined, source: { status: directory.status, message: directory.message }, error: '' };
+      nextDirectory=deps.directory.readPeople();
     } catch (error) {
-      ownState = null; revision = null;
-      state.value = { ...state.value, world: { ...createEmptyWorld(), people: directory?.people.map(projectSourcePerson) ?? [] }, source: { status: directory?.status ?? 'error', message: directory?.message ?? '读取千千结人物目录失败。' }, error: error instanceof Error ? error.message : '读取百面相世界数据失败。' };
+      pendingRefresh=null;refreshFailed(error,directory);return;
+    }
+    const scopeId=nextDirectory.scopeId;
+    if(!scopeId){
+      pendingRefresh=null;directory=nextDirectory;ownState=null;revision=null;
+      state.value = { ...state.value, world: { ...createEmptyWorld(), people: directory.people.map(projectSourcePerson) }, processedThroughSeq: null, currentTimeStarted: false, source: { status: directory.status, message: directory.message }, error: '' };
+      return;
+    }
+    if(pendingRefresh?.scopeId===scopeId){
+      pendingRefresh.directory=nextDirectory;
+      return pendingRefresh.done??undefined;
+    }
+    const refreshRequest:NonNullable<typeof pendingRefresh>={scopeId,directory:nextDirectory,done:null};
+    pendingRefresh=refreshRequest;
+    refreshRequest.done=(async()=>{
+      try{
+        const loaded=await repository.load(scopeId);
+        if(pendingRefresh!==refreshRequest)return;
+        const source=refreshRequest.directory;
+        ownState=loaded?.state??createEmptyState(scopeId);
+        revision=loaded?.revision??null;
+        directory={...source,people:mergeWorldPeople(source.people,ownState)};
+        if(directory.people.length&&['empty','waiting'].includes(directory.status))directory.status='ready';
+        state.value = { ...state.value, world:projectForView(directory.people,ownState), processedThroughSeq: ownState.processedThroughSeq, currentTimeStarted: ownState.currentTimeStartedThroughSeq !== undefined, source: { status: directory.status, message: directory.message }, error: '' };
+      }catch(error){
+        if(pendingRefresh===refreshRequest)refreshFailed(error,refreshRequest.directory);
+      }finally{
+        if(pendingRefresh===refreshRequest)pendingRefresh=null;
+      }
+    })();
+    return refreshRequest.done;
+  }
+
+  async function editTasteCircle(edit:TasteCircleEdit) {
+    const baseline=ownState,source=directory,version=revision;
+    const currentScope=()=>pendingRefresh?.scopeId??directory?.scopeId;
+    const currentRefresh=()=>pendingRefresh?.done;
+    if(!baseline?.foundation||baseline.scopeId!==edit.scopeId||source?.scopeId!==edit.scopeId)throw Error('聊天或圈子已经变化，请重新打开味。');
+    if(state.value.busy||pendingRefresh||pending||historySession||trajectoryCandidate||development.view.value.canSave||development.view.value.needsReload)throw Error('请先处理当前的世界更新，再改圈子。');
+    const circle=socialContexts(source.people,baseline).find(row=>row.id===edit.circleId);
+    if(!circle)throw Error('这个圈子已经不存在，请重新打开味。');
+    const taste={...circle.taste};
+    if(edit.kind==='delete')taste.hidden=true;
+    else {
+      if(edit.title!==undefined) {
+        const title=edit.title.trim();
+        if(!title)throw Error('请填写圈名。');
+        taste.manualTitle=title;
+      }
+      if(edit.personIds!==undefined) {
+        const ids=[...new Set(edit.personIds)];
+        const known=new Set(source.people.map(person=>person.id));
+        if(ids.some(id=>!known.has(id)))throw Error('有成员已经不在当前人物目录，请重新选择。');
+        taste.personIds=ids;
+      }
+      if(edit.title===undefined&&edit.personIds===undefined)return;
+    }
+    const foundation=setTasteCircleSettings(baseline.foundation,circle,taste);
+    state.value={...state.value,busy:true};
+    try {
+      const saved=await repository.save(edit.scopeId,{...baseline,foundation},version);
+      development.rebaseCircleEdit(saved.state,saved.revision,version);
+      await currentRefresh();
+      // A save can finish after the user changes chats; the original scope owns the write.
+      if(currentScope()!==edit.scopeId||revision!==version)return;
+      ownState=saved.state;revision=saved.revision;
+      state.value={...state.value,world:projectForView(directory?.people??source.people,saved.state)};
+    } finally {
+      state.value={...state.value,busy:false};
     }
   }
 
@@ -108,10 +197,10 @@ export function createPeopleWorld(deps: ControllerDependencies) {
       const window: SimulationWindow = { id: newId(), kind: 'current', from, to: from, throughSeq: story.throughSeq! };
       const result = await deps.advancer.advance({ people: startDirectory.people, state: startState, story, mode, window, dependencies: { model, materials } });
       stage = '保存本批世界记录';
-      const saved = await deps.repository.save(startDirectory.scopeId, { ...result.state, ...(result.window ? { simulationRanges: [...(startState.simulationRanges ?? []), result.window], activities: result.state.activities.map(a => a.sources.some(s => s.kind === 'manual') || JSON.stringify(a) === JSON.stringify(startState.activities.find(old => old.id === a.id)) ? a : { ...a, currentStateWindowId: result.window!.id }) } : {}), currentTimeStartedThroughSeq: result.state.currentTimeStartedThroughSeq ?? story.throughSeq ?? startState.processedThroughSeq ?? undefined }, startRevision);
+      const saved = await repository.save(startDirectory.scopeId, { ...result.state, ...(result.window ? { simulationRanges: [...(startState.simulationRanges ?? []), result.window], activities: result.state.activities.map(a => a.sources.some(s => s.kind === 'manual') || JSON.stringify(a) === JSON.stringify(startState.activities.find(old => old.id === a.id)) ? a : { ...a, currentStateWindowId: result.window!.id }) } : {}), currentTimeStartedThroughSeq: result.state.currentTimeStartedThroughSeq ?? story.throughSeq ?? startState.processedThroughSeq ?? undefined }, startRevision);
       ownState = saved.state; revision = saved.revision;
       stage = '完成';
-      state.value = { ...state.value, world: projectWorldState(startDirectory.scopeId, startDirectory.people.map(projectSourcePerson), saved.state), processedThroughSeq: saved.state.processedThroughSeq, currentTimeStarted: saved.state.currentTimeStartedThroughSeq !== undefined, report: result.report, diagnostics: diagnose() };
+      state.value = { ...state.value, world:projectForView(startDirectory.people,saved.state), processedThroughSeq: saved.state.processedThroughSeq, currentTimeStarted: saved.state.currentTimeStartedThroughSeq !== undefined, report: result.report, diagnostics: diagnose() };
     } catch (error) {
       state.value = { ...state.value, error: error instanceof Error ? error.message : '推进失败，请检查人物资料和模型设置。', diagnostics: diagnose() };
     } finally { state.value = { ...state.value, busy: false }; }
@@ -150,10 +239,10 @@ export function createPeopleWorld(deps: ControllerDependencies) {
     if (!candidate) return;
     trajectoryView.value = { ...trajectoryView.value, progress: {windowIndex: 0, stage: 'save'}, canSave: false, error: undefined };
     try {
-      const saved = await deps.repository.save(candidate.result.state.scopeId, candidate.result.state, candidate.revision);
+      const saved = await repository.save(candidate.result.state.scopeId, candidate.result.state, candidate.revision);
       ownState = saved.state; revision = saved.revision;
       if (trajectoryChecked) { trajectoryChecked.baseline = saved.state; trajectoryChecked.revision = saved.revision; }
-      state.value = { ...state.value, world: projectWorldState(saved.state.scopeId, candidate.people.map(projectSourcePerson), saved.state), processedThroughSeq: saved.state.processedThroughSeq, currentTimeStarted: saved.state.currentTimeStartedThroughSeq !== undefined };
+      state.value = { ...state.value, world:projectForView(candidate.people,saved.state), processedThroughSeq: saved.state.processedThroughSeq, currentTimeStarted: saved.state.currentTimeStartedThroughSeq !== undefined };
       const remaining = candidate.result.remainingRanges;
       if (trajectoryChecked) trajectoryChecked.targetRanges = remaining;
       trajectoryCandidate = null; if (!remaining.length) trajectoryChecked = null;
@@ -253,9 +342,9 @@ export function createPeopleWorld(deps: ControllerDependencies) {
     const current = pending; state.value = { ...state.value, busy: true, error: '' };
     const merged: NpcWorldState = { ...historyCandidateForSave(current.candidate, current.baseline, current.throughSeq), scopeId: current.scopeId, processedThroughSeq: Math.max(current.baseline.processedThroughSeq ?? 0, current.throughSeq), historyRanges: mergeRanges([...(current.baseline.historyRanges ?? []), ...current.ranges]) };
     try {
-      const saved = await deps.repository.save(current.scopeId, merged, current.revision);
+      const saved = await repository.save(current.scopeId, merged, current.revision);
       ownState = saved.state; revision = saved.revision; pending = null; checked = null;
-      state.value = { ...state.value, world: projectWorldState(current.scopeId, current.people.map(projectSourcePerson), saved.state), processedThroughSeq: saved.state.processedThroughSeq, error: '' };
+      state.value = { ...state.value, world:projectForView(current.people,saved.state), processedThroughSeq: saved.state.processedThroughSeq, error: '' };
       historyView.value = { ...historyView.value, status: 'saved', candidate: undefined, error: undefined, message: '历史接续已保存到当前世界记录。' };
     } catch (error) {
       historyView.value = { ...historyView.value, status: 'preview', error: error instanceof Error ? error.message : '保存历史接入失败；候选仍保留，可查看冲突原因。' };
@@ -264,7 +353,7 @@ export function createPeopleWorld(deps: ControllerDependencies) {
 
   function discardHistory() { pending = null; checked = null; historySession = null; historyView.value = { status: 'idle', fromSeq: 1, throughSeq: null, batchCharacters: 24000, floors: 0, excludedFloors: 0, characters: 0, batches: 0, skipped: 0, partial: false, progress: 0, modelCalls: 0, materialReads: 0, message: '已放弃本次历史草稿，正式记录未改。' }; }
 
-  return { developmentView: development.view, constructWorld: development.construct, configureDevelopment: development.configure, inspectDevelopment: development.inspect, startDevelopment: development.start, onStoryCompleted: development.onCompleted, stopDevelopment: development.stop, saveDevelopment: development.save, reloadDevelopment: development.reload, trajectoryView: readonly(trajectoryView), checkTrajectory, reloadTrajectory, saveTrajectory, startTrajectory, cancelTrajectory, discardTrajectory, state: readonly(state), historyView: readonly(historyView), refresh, advanceToCurrent, checkHistory, startHistory, cancelHistory, confirmHistory, discardHistory };
+  return { developmentView: development.view, constructWorld: development.construct, configureDevelopment: development.configure, inspectDevelopment: development.inspect, startDevelopment: development.start, onStoryCompleted: development.onCompleted, stopDevelopment: development.stop, saveDevelopment: development.save, reloadDevelopment: development.reload, trajectoryView: readonly(trajectoryView), checkTrajectory, reloadTrajectory, saveTrajectory, startTrajectory, cancelTrajectory, discardTrajectory, state: readonly(state), historyView: readonly(historyView), refresh, editTasteCircle, advanceToCurrent, checkHistory, startHistory, cancelHistory, confirmHistory, discardHistory };
 }
 
 function historyCandidateForSave(candidate: NpcWorldState, baseline: NpcWorldState, throughSeq: number): NpcWorldState {

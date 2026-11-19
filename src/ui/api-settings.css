@@ -1,0 +1,82 @@
+/* Current QQJ panel.css purpose/select rows and shared-ui-style.js control geometry.
+   Editor layout follows gouhua-dialog-style.js custom/API rules; palettes stay local. */
+.bmx-api-editor,.bmx-api-dialog-overlay{
+  --api-body:var(--qqj-font-body);--api-caption:var(--qqj-font-caption);--api-heading:calc(15px * var(--qqj-ui-fixed-scale, 1));
+  --api-small:var(--qqj-space-small);--api-group:var(--qqj-space-group);
+  font:400 var(--api-body)/1.55 var(--qqj-custom-font,system-ui),system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  color:var(--bmx-api-ink);
+}
+.bmx-api-editor button,.bmx-api-dialog-overlay button{
+  box-sizing:border-box;min-width:0;min-height:0;max-width:100%;margin:0;
+  padding:var(--qqj-button-padding);
+  font-family:inherit;font-size:var(--api-body);line-height:var(--qqj-button-line);font-weight:500;
+  white-space:normal;overflow-wrap:anywhere;
+  border:1px solid var(--bmx-api-line);border-radius:var(--qqj-button-radius);
+  background:var(--bmx-api-panel);color:var(--bmx-api-soft);cursor:pointer;
+}
+.bmx-api-editor button:hover:not(:disabled),.bmx-api-dialog-overlay button:hover:not(:disabled){background:color-mix(in srgb,var(--bmx-api-knot) 7%,var(--bmx-api-panel));color:var(--bmx-api-knot)}
+.bmx-api-editor button:disabled,.bmx-api-dialog-overlay button:disabled{opacity:.55;color:var(--bmx-api-soft);cursor:not-allowed}
+.bmx-api-editor :is(button,summary,input,textarea,select):focus-visible,.bmx-api-dialog-overlay :is(button,summary,input,textarea,select):focus-visible{outline:2px solid var(--bmx-api-knot);outline-offset:-2px}
+.bmx-api-editor ::selection,.bmx-api-dialog-overlay ::selection{background:var(--bmx-api-knot);color:var(--bmx-api-on-primary)}
+.bmx-api-editor input,.bmx-api-dialog-overlay input{caret-color:var(--bmx-api-knot)}
+.bmx-api-editor .bmx-api-body{display:grid;gap:var(--api-group);padding:calc(2px * var(--qqj-ui-scale, .85)) calc(2px * var(--qqj-ui-scale, .85)) var(--qqj-space-section) calc(14px * var(--qqj-ui-scale, .85));min-width:0}
+.bmx-api-purpose{display:grid;gap:var(--api-group);min-width:0}
+.bmx-api-purpose>span{color:var(--bmx-api-soft);font-size:var(--api-body);font-weight:600}
+.bmx-api-purpose-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:var(--api-group);min-width:0}
+.bmx-api-purpose-row>.bmx-inline-select{min-width:0}
+.bmx-api-editor input.bmx-api-input,.bmx-api-dialog-overlay input.bmx-api-input,.bmx-api-dialog-input{
+  box-sizing:border-box;width:100%;min-width:0;min-height:var(--qqj-control-height);margin:0;
+  padding:var(--qqj-control-pad-y) var(--qqj-control-pad-x);border:1px solid var(--bmx-api-line);border-radius:var(--qqj-radius-control);
+  background:var(--bmx-api-panel);color:var(--bmx-api-ink);
+  font-family:inherit;font-size:var(--api-body);line-height:var(--qqj-control-line);font-weight:400;
+}
+.bmx-api-input::placeholder,.bmx-api-dialog-input::placeholder{color:var(--bmx-api-soft);opacity:1}
+.bmx-api-input:focus,.bmx-api-dialog-input:focus{outline:none;border-color:var(--bmx-api-knot);box-shadow:inset 0 0 0 1px var(--bmx-api-knot)}
+.bmx-api-editor .bmx-inline-select{display:grid;min-width:0}
+.bmx-api-editor button.bmx-inline-select-trigger{display:flex;align-items:center;justify-content:space-between;gap:var(--api-group);width:100%;height:auto;text-align:left;color:var(--bmx-api-ink)}
+.bmx-inline-select-value{min-width:0;white-space:normal;overflow-wrap:anywhere}
+.bmx-inline-select-chevron{display:inline-flex;align-items:center;justify-content:center;flex:none;font-size:var(--qqj-font-body);font-weight:400;line-height:1;transform:rotate(90deg);transition:transform 150ms ease-out}
+.bmx-inline-select.open>.bmx-inline-select-trigger .bmx-inline-select-chevron{transform:rotate(-90deg)}
+.bmx-inline-select-options{display:grid;grid-auto-rows:max-content;align-content:start;max-height:220px;margin-top:var(--api-small);padding:calc(3px * var(--qqj-ui-scale, .85));overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;border:1px solid var(--bmx-api-line);border-radius:var(--qqj-radius-control);background:var(--bmx-api-paper)}
+.bmx-api-editor button.bmx-inline-select-option{display:block;width:100%;text-align:left;overflow-wrap:anywhere;border-color:transparent;border-radius:calc(6px * .85);background:transparent;color:var(--bmx-api-ink);font-weight:400}
+.bmx-api-editor button.bmx-inline-select-option.active{border-color:var(--bmx-api-knot);background:color-mix(in srgb,var(--bmx-api-knot) 10%,var(--bmx-api-panel));color:var(--bmx-api-knot)}
+.bmx-api-actions{display:flex;flex-wrap:wrap;gap:var(--api-group);margin-top:calc(2px * var(--qqj-ui-scale, .85))}
+.bmx-api-secondary,.bmx-api-primary{display:inline-flex;align-items:center;justify-content:center;justify-self:start;flex:0 1 auto;width:auto;max-width:100%;text-align:center;white-space:normal;overflow-wrap:anywhere}
+.bmx-api-editor .bmx-api-hint,.bmx-api-dialog-overlay .bmx-api-hint{margin:0;color:var(--bmx-api-soft);font-size:var(--api-caption);line-height:1.55;overflow-wrap:anywhere}
+.bmx-api-editor .bmx-api-result,.bmx-api-dialog-overlay .bmx-api-result{margin:0;color:var(--bmx-api-soft);font-size:var(--api-caption);line-height:1.55;overflow-wrap:anywhere}
+.bmx-api-result:empty{display:none}.bmx-api-result.success{color:var(--bmx-api-success)!important}.bmx-api-result.error{color:var(--bmx-api-crimson)!important}
+.bmx-api-dialog-layer{position:relative;z-index:2000002;pointer-events:none}
+@keyframes bmx-api-dialog-in{from{opacity:0}to{opacity:1}}
+.bmx-api-dialog-overlay{
+  --bmx-api-dialog-shadow:0 8px 40px rgb(0 0 0 / .12),0 2px 10px rgb(0 0 0 / .07);
+  position:fixed;inset:0;z-index:2000002;display:flex;align-items:center;justify-content:center;
+  box-sizing:border-box;padding:20px;background:rgb(0 0 0 / .55);pointer-events:auto;
+  animation:bmx-api-dialog-in 150ms ease-out;letter-spacing:normal;text-shadow:none;color-scheme:light;
+}
+:host([data-bmx-theme="night"]) .bmx-api-dialog-overlay{--bmx-api-dialog-shadow:0 8px 40px rgb(0 0 0 / .65),0 2px 10px rgb(0 0 0 / .45);color-scheme:dark}
+.bmx-api-dialog-overlay *{box-sizing:border-box;text-shadow:none}
+.bmx-api-dialog-sheet{display:flex;flex-direction:column;gap:10px;width:400px;max-width:100%;max-height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px 18px 14px;border-radius:12px;background:var(--bmx-api-panel);box-shadow:var(--bmx-api-dialog-shadow)}
+.bmx-api-dialog-head{flex:0 0 auto;min-width:0;color:var(--bmx-api-ink);font-size:var(--api-heading);font-weight:600;overflow-wrap:anywhere}
+.bmx-api-dialog-body{min-height:0;overflow-y:auto;overscroll-behavior:contain;font-size:var(--api-body);line-height:1.65;color:var(--bmx-api-ink);white-space:pre-wrap;word-break:break-word}
+.bmx-api-dialog-note{color:var(--bmx-api-soft);font-size:var(--api-caption);line-height:1.55;margin:0;padding:8px 10px}
+.bmx-api-dialog-actions{flex:0 0 auto;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--api-group);margin-top:var(--api-small)}
+.bmx-api-dialog-overlay button.bmx-api-dialog-button-primary,.bmx-api-dialog-overlay button.bmx-api-primary{background:var(--bmx-api-knot);border-color:var(--bmx-api-knot);color:var(--bmx-api-on-primary)}
+.bmx-api-dialog-overlay button.bmx-api-dialog-button-primary:hover:not(:disabled),.bmx-api-dialog-overlay button.bmx-api-primary:hover:not(:disabled){opacity:.88}
+.bmx-api-dialog-overlay button.bmx-api-dialog-button-primary:focus-visible,.bmx-api-dialog-overlay button.bmx-api-primary:focus-visible{outline-color:var(--bmx-api-on-primary)}
+.bmx-api-dialog-input-error{flex:0 0 auto;min-height:1em;font-size:var(--api-caption);line-height:1.4;color:var(--bmx-api-crimson)}
+.bmx-api-config-dialog{max-height:min(80dvh,100%);overflow:hidden}
+.bmx-api-config-dialog>.bmx-api-dialog-body{flex:1 1 auto;min-height:0;white-space:normal}
+.bmx-api-config-fields{display:grid;min-width:0;gap:var(--qqj-space-section);margin:0;color:var(--bmx-api-ink);font-size:var(--api-body);line-height:1.55}
+.bmx-api-field{display:grid;min-width:0;gap:var(--api-small);color:var(--bmx-api-soft);font-size:var(--api-body);line-height:1.45}
+.bmx-api-inline{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--api-group)}
+.bmx-api-inline>input{min-width:0}.bmx-api-inline>button{white-space:nowrap}
+.bmx-api-config-fields>.bmx-api-actions{margin:0}
+.bmx-api-dialog-overlay button.bmx-api-danger{color:var(--bmx-api-crimson)}
+.bmx-api-dialog-overlay .bmx-model-list-section{min-width:0;padding:var(--api-group);border:1px solid var(--bmx-api-line);border-radius:10px}
+.bmx-model-list-summary{cursor:pointer;color:var(--bmx-api-soft);font-size:var(--api-caption)}
+.bmx-model-list-items{display:grid;gap:var(--api-small);max-height:180px;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;margin-top:var(--api-group)}
+.bmx-api-dialog-overlay button.bmx-model-list-item{width:100%;text-align:left;justify-content:flex-start;overflow-wrap:anywhere;border-radius:6px;color:var(--bmx-api-ink);font-weight:400}
+.bmx-api-dialog-overlay button.bmx-model-list-item.active{color:var(--bmx-api-knot);border-color:var(--bmx-api-knot);background:color-mix(in srgb,var(--bmx-api-knot) 10%,var(--bmx-api-panel))}
+.bmx-api-dialog-overlay :is(.bmx-api-dialog-body,.bmx-model-list-items),.bmx-inline-select-options{scrollbar-width:thin;scrollbar-color:var(--bmx-api-line) transparent}
+@media(max-height:540px){.bmx-api-dialog-overlay.is-editor{padding:10px}.bmx-api-config-dialog{max-height:100%;padding:12px 14px;gap:8px}}
+@media(prefers-reduced-motion:reduce){.bmx-api-dialog-overlay{animation:none}.bmx-inline-select-chevron{transition:none}}

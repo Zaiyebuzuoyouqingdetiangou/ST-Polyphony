@@ -29,7 +29,7 @@ test('explicit historical fields keep the saved activity ID and carry through ev
  const partial=await advance({activities:[{id:'a',status:'waiting'}],events:[event()],knowledge:[]});
  assert.equal(partial.state.activities.length,0);assert.equal(partial.state.events.at(-1).activityChange,undefined);
  const noDescription=await advance({activities:[{id:'a',title:'明确的过去标题',status:'active',participantIds:['P1']}],events:[event()],knowledge:[]});
- assert.equal(noDescription.state.activities[0].description,'');assert.equal(noDescription.state.events.at(-1).activityChange,undefined);
+ assert.equal(noDescription.state.activities[0].description,'明确的过去标题');assert.equal(noDescription.state.events.at(-1).activityChange,undefined);
 });
 
 test('complete local activity id and key refer to the same program-owned ID while ambiguous aliases remain unusable',async()=>{

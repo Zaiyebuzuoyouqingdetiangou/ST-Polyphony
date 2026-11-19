@@ -13,7 +13,8 @@ async function render(developmentOnstagePersonIds){return renderToString(createS
 const contexts=html=>[...html.matchAll(/<button\b([^>]*)>(.*?)<\/button>/gs)].filter(match=>{const classes=match[1].match(/\bclass="([^"]*)"/)?.[1].split(/\s+/)??[];return classes.includes('bmx-graph-context')&&classes.includes('task-node');}).map(match=>match[2]);
 test('the real FourSenses graph only creates activity links with an actual HearingPage target',async()=>{
  const html=await render(['p']),links=contexts(html);assert.equal(links.length,1);assert.match(links[0],/混合事务/);assert.doesNotMatch(links[0],/纯在场事务|已完成/);
- assert.doesNotMatch(html,/data-result-id="onstage"/);for(const id of ['mixed','offstage','empty','done'])assert.ok(html.includes('data-result-id="'+id+'"'));
+ assert.doesNotMatch(html,/data-result-id="(?:onstage|done)"/);for(const id of ['mixed','offstage','empty'])assert.ok(html.includes('data-result-id="'+id+'"'));
+ assert.match(html,/余音/);
 });
 test('without current onstage ownership the graph keeps the original unfinished activity links',async()=>{
  const html=await render(undefined),links=contexts(html);assert.equal(links.length,2);assert.ok(links.some(link=>link.includes('纯在场事务')));assert.ok(links.some(link=>link.includes('混合事务')));assert.ok(links.every(link=>!link.includes('已完成')));

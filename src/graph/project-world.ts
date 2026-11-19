@@ -1,3 +1,4 @@
+import {recordBody} from '../domain/world';
 import type { Activity, Person, WorldSnapshot } from '../domain/world';
 
 export interface PersonNode {
@@ -42,9 +43,9 @@ export function projectWorld(snapshot: WorldSnapshot): GraphData {
   const activities: ActivityNode[] = snapshot.activities.map(activity => ({
     id: activity.id,
     type: 'activity',
-    label: activity.title,
+    label: recordBody(activity),
     status: activity.status,
-    description: activity.description,
+    description: recordBody(activity),
   }));
   const personIds = new Set(people.map(person => person.id));
   const edges: GraphEdge[] = snapshot.activities.flatMap(activity =>

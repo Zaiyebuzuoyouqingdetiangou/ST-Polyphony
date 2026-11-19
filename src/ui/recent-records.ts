@@ -1,3 +1,4 @@
+import {recordBody} from '../domain/world';
 import type { Activity, Person, WorldEvent, WorldSnapshot } from '../domain/world';
 import { isEffectiveEvent } from '../domain/world-facts';
 import { formatStoryTime } from './story-time';
@@ -11,7 +12,7 @@ export interface PersonRecentRecords {
 export function deriveRecentRecords(world: WorldSnapshot): PersonRecentRecords[] {
   const windows = new Map((world.simulationRanges ?? []).map(window => [window.id, window]));
   const candidates = world.events.filter(isEffectiveEvent).flatMap(event => {
-    const content = event.description?.trim() ? event.description : event.title;
+    const content = recordBody(event);
     if (!content?.trim()) return [];
     const window = windows.get(event.simulationWindowId ?? '') ?? event.sources.map(source => windows.get(source.id)).find(Boolean);
     const sources = [...event.sources, ...(event.storyTime?.source ? [event.storyTime.source] : [])];

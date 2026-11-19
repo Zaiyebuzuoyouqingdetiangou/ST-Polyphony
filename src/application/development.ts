@@ -4,7 +4,6 @@ import type {NpcWorldState} from '../domain/world-state';
 import {generateDevelopment,prepareDevelopment,rebaseDevelopmentPreparation,type DevelopmentPreparation} from '../simulation/development';
 import {generateAtmosphere} from '../simulation/atmosphere';
 import {generateWorldConstruction,prepareWorldConstruction} from '../simulation/world-construction';
-import {mergeWorldPeople} from '../domain/world-foundation';
 import {MaterialsNotReadyError} from '../simulation/life-materials';
 import {beginDiagnostic,recordDiagnostic,protectDiagnostic,diagnosticError,type DiagnosticTrace} from '../diagnostics/development';
 
@@ -14,7 +13,7 @@ type Module='olfaction'|'hearing'|'construction';
 type Batch={people:PeopleDirectoryRead['people'];state:NpcWorldState;revision:number|null;story:StoryInput;initial:boolean;prepared:DevelopmentPreparation;module:Module;smellReady:boolean;constructionOnly:boolean;flowPrepared:boolean;diagnostic?:DiagnosticTrace};
 type Candidate={state:NpcWorldState;revision:number|null;module:Module;diagnostic?:DiagnosticTrace};
 
-export function createDevelopmentController(input:{deps:ControllerDependencies;state:ShallowRef<ControllerState>;refresh():Promise<void>;snapshot():Snapshot;publish(state:NpcWorldState,revision:number,people:PeopleDirectoryRead['people']):void}) {
+export function createDevelopmentController(input:{deps:ControllerDependencies;state:ShallowRef<ControllerState>;refresh():Promise<void>;snapshot():Snapshot;publish(state:NpcWorldState,revision:number,people:PeopleDirectoryRead['people']):PeopleDirectoryRead['people']}) {
   const view=shallowRef<DevelopmentView>({status:'idle',started:false,pendingReplies:0,everyReplies:1,processedThroughSeq:null,modelCalls:0,totalCalls:2,remainingCalls:2,requestPending:false,saving:false,canSave:false,needsReload:false,message:'',error:''});
   let settings={isEnabled:()=>false,getEveryReplies:()=>1};
   // Only this ordinary in-memory batch survives a manual stop or failed module/save.
@@ -23,11 +22,13 @@ export function createDevelopmentController(input:{deps:ControllerDependencies;s
   function begin(trigger:string,details:Record<string,unknown>={}){const snapshot=input.snapshot();return beginDiagnostic(input.deps.diagnostics,trigger,{scopeId:snapshot.directory?.scopeId??null,revision:snapshot.revision,processedThroughSeq:snapshot.state?.processedThroughSeq??null,...details});}
   function counts(remaining:number){view.value={...view.value,remainingCalls:remaining,totalCalls:Math.max(plannedCalls,view.value.modelCalls+remaining)};}
   function remaining(){return batch?.module==='construction'?batch.constructionOnly?1:3:batch?.module==='hearing'?1:2;}
-  function read(snapshot:Snapshot,initial=false):StoryInput|null {
+  function read(snapshot:Snapshot,initial=false,requireReadiness=true):StoryInput|null {
     if(!snapshot.state||!snapshot.directory?.scopeId||!input.deps.history)return null;
     const baseline=initial&&snapshot.state.worldBaseline?.needsCurrentDevelopment&&snapshot.state.worldBaseline.throughSeq>0?snapshot.state.worldBaseline:undefined;
     const fromSeq=initial?1:(snapshot.state.processedThroughSeq??0)+1;
-    const result=input.deps.history.readStoryHistory({fromSeq,...(baseline?{toSeq:baseline.throughSeq}:{}),scopeId:snapshot.directory.scopeId,stableOnly:true,currentOnly:initial});
+    const readiness=requireReadiness?input.deps.readiness?.read({scopeId:snapshot.directory.scopeId,afterSeq:fromSeq-1}):undefined;
+    if(readiness&&(readiness.status!=='ready'||readiness.throughSeq===null))return{status:readiness.status==='ready'?'empty':'waiting',throughSeq:null,turns:[],source:{kind:'chat',id:'current-history',label:'已有剧情'},message:readiness.message};
+    const result=input.deps.history.readStoryHistory({fromSeq,...(baseline?{toSeq:baseline.throughSeq}:{}),...(readiness?{readyThroughSeq:readiness.throughSeq}:{}),scopeId:snapshot.directory.scopeId,stableOnly:true,currentOnly:initial});
     const processed=snapshot.state.processedThroughSeq;
     const turns=initial&&processed!==null?result.turns.map(turn=>turn.seq<=processed?{...turn,calibrationEligible:false}:turn):result.turns;
     return{status:result.status,throughSeq:result.throughSeq,latestAiSeq:result.latestAiSeq,turns,source:result.source,message:result.message};
@@ -35,8 +36,11 @@ export function createDevelopmentController(input:{deps:ControllerDependencies;s
   function inspect(){const snapshot=input.snapshot(),story=read(snapshot);view.value={...view.value,started:snapshot.state?.automaticDevelopmentEnabled===true,pendingReplies:story?.turns.filter(turn=>!turn.isUser).length??0,everyReplies:settings.getEveryReplies(),processedThroughSeq:snapshot.state?.processedThroughSeq??null};}
   function moduleTrace(current:Batch,module:Module){return beginDiagnostic(input.deps.diagnostics,module,{parentId:current.diagnostic?.id,module,scopeId:current.state.scopeId,revision:current.revision,processedThroughSeq:current.state.processedThroughSeq,throughSeq:current.story.throughSeq});}
   function requester(diagnostic:DiagnosticTrace|undefined){return{async request(request:ModelRequest){
-    request.signal?.throwIfAborted();const primary=await input.deps.config.getProfile('primary');request.signal?.throwIfAborted();protectDiagnostic(diagnostic,[primary.key,primary.url]);
-    try{return await input.deps.createModelRequester({primary,secondary:primary}).request({...request,diagnostic,onStarted:()=>{view.value={...view.value,modelCalls:view.value.modelCalls+1,requestPending:true};counts(Math.max(0,view.value.remainingCalls-1));request.onStarted?.();}});}
+    request.signal?.throwIfAborted();
+    const profile=await input.deps.config.getProfile(request.task==='atmosphere'?'secondary':'primary');
+    request.signal?.throwIfAborted();
+    protectDiagnostic(diagnostic,[profile.key,profile.url]);
+    try{return await input.deps.createModelRequester({primary:profile,secondary:profile}).request({...request,diagnostic,onStarted:()=>{view.value={...view.value,modelCalls:view.value.modelCalls+1,requestPending:true};counts(Math.max(0,view.value.remainingCalls-1));request.onStarted?.();}});}
     finally{view.value={...view.value,requestPending:false};}
   } };}
   async function persist(diagnostic=candidate?.diagnostic):Promise<boolean> {
@@ -45,13 +49,13 @@ export function createDevelopmentController(input:{deps:ControllerDependencies;s
     try {
       recordDiagnostic(diagnostic,'save-started',{module:current.module,expectedRevision:current.revision,throughSeq:current.state.processedThroughSeq});
       const saved=await input.deps.repository.save(current.state.scopeId,current.state,current.revision,diagnostic);
-      input.publish(saved.state,saved.revision,currentBatch.people);candidate=null;
+      const people=input.publish(saved.state,saved.revision,currentBatch.people);candidate=null;
       recordDiagnostic(diagnostic,'published',{module:current.module,revision:saved.revision,throughSeq:saved.state.processedThroughSeq,totalActivities:saved.state.activities.length,totalEvents:saved.state.events.length,totalKnowledge:saved.state.knowledge.length,atmosphereCount:saved.state.developmentAtmospheres?.length??0});
       if(current.module==='construction') {
         if(currentBatch.constructionOnly){batch=null;counts(0);view.value={...view.value,status:stopping?'stopped':'saved',saving:false,needsReload:false,error:'',message:stopping?'世界已构建，请点击「百相流转」继续。':saved.state.automaticDevelopmentEnabled?'世界已构建，自动流转继续等待新的稳定剧情。':'世界已构建，请点击「百相流转」启用自动更新。'};}
-        else{currentBatch.state=saved.state;currentBatch.revision=saved.revision;currentBatch.people=mergeWorldPeople(currentBatch.people,saved.state);currentBatch.prepared=rebaseDevelopmentPreparation({...currentBatch},currentBatch.prepared);currentBatch.module='olfaction';currentBatch.initial=true;view.value={...view.value,status:stopping?'stopped':'running',saving:false,error:'',message:stopping?'世界基础已保存，可点百相流转继续剩余部分。':'世界基础已保存，继续形成局部情绪。'};}
+        else{currentBatch.state=saved.state;currentBatch.revision=saved.revision;currentBatch.people=people;currentBatch.prepared=rebaseDevelopmentPreparation({...currentBatch},currentBatch.prepared);currentBatch.module='olfaction';currentBatch.initial=true;view.value={...view.value,status:stopping?'stopped':'running',saving:false,error:'',message:stopping?'世界基础已保存，可点百相流转继续剩余部分。':'世界基础已保存，继续形成局部情绪。'};}
       } else if(current.module==='olfaction') {
-        currentBatch.state=saved.state;currentBatch.revision=saved.revision;currentBatch.people=mergeWorldPeople(currentBatch.people,saved.state);currentBatch.prepared={...rebaseDevelopmentPreparation({...currentBatch},currentBatch.prepared),worldSettings:undefined};currentBatch.module='hearing';currentBatch.smellReady=true;
+        currentBatch.state=saved.state;currentBatch.revision=saved.revision;currentBatch.people=people;currentBatch.prepared={...rebaseDevelopmentPreparation({...currentBatch},currentBatch.prepared),worldSettings:undefined};currentBatch.module='hearing';currentBatch.smellReady=true;
         view.value={...view.value,status:stopping?'stopped':'running',saving:false,needsReload:false,error:'',message:stopping?'背景已保存，人物事务尚未更新；点百相流转继续剩余部分。':'背景已保存，正在更新人物事务。'};
       } else {
         batch=null;counts(0);view.value={...view.value,status:stopping?'stopped':'saved',saving:false,needsReload:false,error:'',message:stopping?'本次已保存，后续自动更新已暂停。':'本轮更新已保存。'};
@@ -73,7 +77,7 @@ export function createDevelopmentController(input:{deps:ControllerDependencies;s
       signal.throwIfAborted();candidate={state:result.state,revision:current.revision,module:'construction',diagnostic};const saved=await persist();if(!saved||!batch||stopping)return saved;
     }
     if(current.module==='olfaction') {
-      if(!current.flowPrepared){current.prepared=await prepareDevelopment({...current,worldSettings:current.prepared.worldSettings,signal,dependencies:{materials:input.deps.materials,worldSettings:input.deps.worldSettings,model:requester(current.diagnostic)}});current.flowPrepared=true;}
+      if(!current.flowPrepared){current.prepared=await prepareDevelopment({...current,prepared:current.prepared,worldSettings:current.prepared.worldSettings,signal,dependencies:{materials:input.deps.materials,worldSettings:input.deps.worldSettings,model:requester(current.diagnostic)}});current.flowPrepared=true;}
       const diagnostic=moduleTrace(current,'olfaction');activeDiagnostic=diagnostic;
       view.value={...view.value,message:'正在形成局部风向。'};
       const result=await generateAtmosphere({people:current.people,state:current.state,story:current.story,initial:current.initial,prepared:current.prepared,signal,diagnostic,dependencies:{materials:input.deps.materials,worldSettings:input.deps.worldSettings,model:requester(diagnostic)}});
@@ -106,7 +110,7 @@ export function createDevelopmentController(input:{deps:ControllerDependencies;s
         const initial=construction||!snapshot.state?.foundation||(!automatic&&snapshot.state?.worldBaseline?.needsCurrentDevelopment===true)||snapshot.state?.automaticDevelopmentEnabled!==true;
         recordDiagnostic(diagnostic,'world-loaded',{scopeId:snapshot.directory?.scopeId,revision:snapshot.revision,processedThroughSeq:snapshot.state?.processedThroughSeq,initial});
         if(automatic&&snapshot.state?.automaticDevelopmentEnabled!==true){recordDiagnostic(diagnostic,'skipped',{reason:'not-started'});return;}
-        const story=read(construction&&snapshot.state?{...snapshot,state:{...snapshot.state,worldBaseline:undefined}}:snapshot,initial);inspect();
+        const story=read(construction&&snapshot.state?{...snapshot,state:{...snapshot.state,worldBaseline:undefined}}:snapshot,initial,!construction);inspect();
         recordDiagnostic(diagnostic,'story-read',{throughSeq:story?.throughSeq,latestAiSeq:story?.latestAiSeq,stableOnly:true,storyStatus:story?.status,peopleCount:snapshot.directory?.people.length,pendingReplies:view.value.pendingReplies,everyReplies:settings.getEveryReplies()});
         if(!snapshot.state||!snapshot.directory?.scopeId||!story||story.status!=='ready'&&!(construction&&story.status==='empty')||!construction&&snapshot.state.foundation&&!snapshot.directory.people.length){recordDiagnostic(diagnostic,'skipped',{reason:'waiting',message:story?.message||input.state.value.source.message});view.value={...view.value,status:'waiting',message:story?.message||input.state.value.source.message||'等待首个正式正文和人物资料。'};return;}
         if(!initial&&!story.turns.some(turn=>!turn.isUser)){recordDiagnostic(diagnostic,'skipped',{reason:'no-new-ai'});return;}
@@ -127,12 +131,21 @@ export function createDevelopmentController(input:{deps:ControllerDependencies;s
     if(saved&&!batch&&!construction)await onCompleted({source:'after-save',parentId:diagnostic?.id});
   }
   async function onCompleted(details:Record<string,unknown>={}) {
-    const diagnostic=begin(details.source==='after-save'?'after-save':'story-completed',details);
-    if(input.state.value.busy||!settings.isEnabled()){recordDiagnostic(diagnostic,'skipped',{reason:input.state.value.busy?'busy':'disabled'});return;}
-    if(!input.snapshot().state){await input.refresh();if(input.state.value.error)recordDiagnostic(diagnostic,'world-read-failed',{error:input.state.value.error});}inspect();
-    if(candidate||['error','stopped'].includes(view.value.status)){recordDiagnostic(diagnostic,'skipped',{reason:['error','stopped'].includes(view.value.status)?view.value.status:'candidate',status:view.value.status});return;}
-    const current=input.snapshot();recordDiagnostic(diagnostic,'eligibility',{scopeId:current.directory?.scopeId,revision:current.revision,pendingReplies:view.value.pendingReplies,everyReplies:settings.getEveryReplies(),processedThroughSeq:view.value.processedThroughSeq});
-    if(view.value.started&&view.value.pendingReplies>=settings.getEveryReplies())await update(true,diagnostic);else recordDiagnostic(diagnostic,'skipped',{reason:!view.value.started?'not-started':view.value.pendingReplies===0?'no-new-ai':'below-n'});
+    if(input.state.value.busy||!settings.isEnabled())return;
+    const trigger=details.source==='after-save'?'after-save':'story-completed';
+    if(!input.snapshot().state||details.source&&details.source!=='after-save'&&details.source!=='qqj-ready'){
+      await input.refresh();
+      if(input.state.value.busy||!settings.isEnabled())return;
+      if(input.state.value.error){
+        recordDiagnostic(begin(trigger,details),'world-read-failed',{error:input.state.value.error});
+      }
+    }
+    inspect();
+    const {status,started,pendingReplies,everyReplies}=view.value;
+    if(candidate||status==='error'||status==='stopped'||!started||pendingReplies<everyReplies)return;
+    const diagnostic=begin(trigger,details);
+    recordDiagnostic(diagnostic,'eligibility',{pendingReplies,everyReplies});
+    await update(true,diagnostic);
   }
   async function save(){
     if(input.state.value.busy||!candidate||!view.value.canSave)return;const diagnostic=begin('resave',{parentId:candidate.diagnostic?.id,module:candidate.module}),constructionOnly=batch?.constructionOnly===true;
@@ -143,5 +156,10 @@ export function createDevelopmentController(input:{deps:ControllerDependencies;s
     if(saved&&!batch&&!constructionOnly)await onCompleted({source:'after-save',parentId:diagnostic?.id});
   }
   async function reload(){if(input.state.value.busy)return;await input.refresh();if(candidate&&candidate.revision===input.snapshot().revision){view.value={...view.value,canSave:true,needsReload:false,error:candidate.module==='olfaction'?'原版本未变化，可重存背景后继续剩余一次人物发展。':'原版本未变化，可重新保存已保留结果。'};}else{candidate=null;batch=null;view.value={...view.value,status:'idle',needsReload:false,canSave:false,error:'',message:view.value.started?'已重新读取，可点百相流转更新。':'已重新读取，可开始百相流转。'};}inspect();}
-  return{view:readonly(view),configure(next:typeof settings){settings=next;inspect();},inspect,start:()=>update(false),construct:()=>update(false,begin('world-construction'),true),onCompleted,save,reload,stop(){recordDiagnostic(activeDiagnostic,'stop-requested',{status:view.value.saving?'saving':'waiting'});stopping=true;if(!view.value.saving)abort?.abort();}};
+  function rebaseCircleEdit(state:NpcWorldState,revision:number,previous:number|null) {
+    if(!batch||candidate||batch.state.scopeId!==state.scopeId||batch.revision!==previous)return;
+    batch.state=state;batch.revision=revision;
+    batch.prepared=rebaseDevelopmentPreparation(batch,batch.prepared);
+  }
+  return{view:readonly(view),configure(next:typeof settings){settings=next;inspect();},inspect,start:()=>update(false),construct:()=>update(false,begin('world-construction'),true),onCompleted,save,reload,rebaseCircleEdit,stop(){recordDiagnostic(activeDiagnostic,'stop-requested',{status:view.value.saving?'saving':'waiting'});stopping=true;if(!view.value.saving)abort?.abort();}};
 }

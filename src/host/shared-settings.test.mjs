@@ -1,22 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'vite';
+import '../../scripts/source-loader.mjs';
 
-let server; let createAppearanceSettings; let readSharedApiPresets; let getHostContext;
-test.before(async () => {
-  server = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false }, appType: 'custom' });
-  ({ createAppearanceSettings } = await server.ssrLoadModule('/src/host/appearance-settings.ts'));
-  ({ readSharedApiPresets } = await server.ssrLoadModule('/src/host/api-pool.ts'));
-  ({ getHostContext } = await server.ssrLoadModule('/src/host/host-context.ts'));
-});
-test.after(async () => { await server?.close(); });
+const { createAppearanceSettings } = await import('./appearance-settings.ts');
+const { readSharedApiPresets } = await import('./api-pool.ts');
+const { getHostContext } = await import('./host-context.ts');
 
 test('theme preference defaults without writing and saves only its own namespace field', () => {
   let saves = 0;
   const context = { extensionSettings: { 'st-dollars': { existing: true }, unrelated: { intact: true } }, saveSettingsDebounced: () => saves++ };
   const settings = createAppearanceSettings(() => context);
-  assert.deepEqual(settings.get(), { appearanceTheme: 'auto' }); assert.equal(saves, 0);
-  settings.save('night');
+  assert.equal(settings.get().appearanceTheme, 'auto'); assert.equal(saves, 0);
+  settings.save({ appearanceTheme: 'night' });
   assert.deepEqual(context.extensionSettings['st-dollars'], { existing: true, appearanceTheme: 'night' });
   assert.deepEqual(context.extensionSettings.unrelated, { intact: true }); assert.equal(saves, 1);
 });
@@ -35,7 +30,7 @@ test('theme and shared pool adapters use the existing SillyTavern and Luker cont
     const resolved = getHostContext(globals);
     assert.equal(readSharedApiPresets(resolved)[0].id, 'source');
     const settings = createAppearanceSettings(() => getHostContext(globals));
-    assert.equal(settings.get().appearanceTheme, 'auto'); settings.save('day');
+    assert.equal(settings.get().appearanceTheme, 'auto'); settings.save({ appearanceTheme: 'day' });
     assert.equal(context.extensionSettings['st-dollars'].appearanceTheme, 'day'); assert.equal(saved, 1);
   }
 });

@@ -1,18 +1,23 @@
 # 百面相架构与当前本地实现
 
-当前前端为App → FourSenses（视/听/嗅/味）与常驻SettingsPage，共用发展动作及固定底部器官Tab。人物目录、事务与情绪消费同一WorldSnapshot；视页显示简短身份与局部图，不设人物档案入口，听页从WorldSnapshot只读投影的developmentOnstagePersonIds排除参与者非空且全部明确在场的卡片，混合、空或未知参与者保留；visibleHearingActivities与FourSenses图中可跳转事务共用原活动可见规则，原world保持全量。听页按事务仅显示一段主正文，有最新有效自创进展便显示进展，无则显示概况。QQJ原资料、性格/关系分类依据及回忆读取保留，不再生成只供档案详情展示的profileDetails副本。局部图仅用有效明确关系及分型事务/圈层。设置草稿、Shadow DOM、输入隔离及窗口几何保留。
+当前前端为App → FourSenses（视/听/嗅/味）与常驻SettingsPage，共用发展动作及固定底部器官Tab。人物目录、事务与情绪消费同一WorldSnapshot；视页显示简短身份与局部图，不设人物档案入口，听页从WorldSnapshot只读投影的developmentOnstagePersonIds排除参与者非空且全部明确在场的卡片，混合、空或未知参与者保留；visibleHearingActivities与FourSenses图中可跳转事务共用原活动可见规则，原world保持全量。听页按事务显示完整的最新有效进展或概况。展示层用同一 activityId 和进展资格派生前情，按保存顺序倒排并沿同一细线原位展开。名册借现有内容 stage 浮置，在接近列表末端时暂缩滚动视口，为名册腾出位置，关闭后恢复。视、听、味沿用同一健康条，模块顶部留 12px。QQJ原资料、性格/关系分类依据及回忆读取保留，不再生成只供档案详情展示的profileDetails副本。局部图仅用有效明确关系及分型事务/圈层。设置草稿、Shadow DOM、输入隔离及窗口几何保留。
 
-`simulation/atmosphere.ts`生成并接纳情绪局部风向（界面味），`simulation/development.ts`读取已保存风向，生成并接纳听觉人物事务、经历和知情。`application/development.ts`复用people-world同一世界/忙碌/仓储，同批只准备一次QQJ关联材料，圈/关系、个人长期职责、未完事务及持续后果共同进入原最多4合并主题与40k预算；查询先保短名称/角色，再分配长详情，正式事实与正文不因此截断，完整世界参考在基础构筑或旧基础确有缺口时读取，正常味同答补齐后沿用精简基础，每模块派发前读最新主配置。味CAS保存持续圈层背景、有限配方及同答有据静态基础补充，不推进处理位置、在场或时钟；听觉从实际ACK读取风向，保存成功才推进正文处理位置及首次自动许可。候选保存失败不重发本模块，风向重存后继续尚未派发的听觉；已保存情绪后的失败/停止只在下次明确操作时续听觉。续接仅保留当前内存批次，没有自动重试或持久恢复。N只存宿主设置`developmentEveryReplies`，累计由成功位置后的正式AI正文派生。`host/story-completion.ts`只接CHARACTER_MESSAGE_RENDERED一个入口，history reader恢复QQJ隐藏原角色并排除当前流式未完成楼；没有定时器或任务登记。
+`simulation/atmosphere.ts`生成并接纳情绪局部风向（界面味），`simulation/development.ts`读取已保存风向，生成并接纳听觉人物事务、经历和知情。`application/development.ts`复用people-world同一世界/忙碌/仓储，同批只准备一次QQJ关联材料。已构筑的常规流转先以本批正式正文、可推进事务和少量可用日常筛选人物，再做同一批有界关联读取。味用相关圈的公开证据，听用该批人物近期经历、可继续的事项和必要前因。完整卡书由构筑入口读取。味用副模型，听与构筑用主模型；每次派发前通过 `config.getProfile` 读取该用途的最新已保存配置，副模型跟随与共享预设沿现有解析。味CAS保存持续圈层背景、有限配方及同答有据静态基础补充，不推进处理位置、在场或时钟；听觉从实际ACK读取风向，保存成功才推进正文处理位置及首次自动许可。候选保存失败不重发本模块，风向重存后继续尚未派发的听觉；已保存情绪后的失败/停止只在下次明确操作时续听觉。续接仅保留当前内存批次，没有自动重试或持久恢复。N只存宿主设置`developmentEveryReplies`，累计由成功位置后的正式AI正文派生。`host/story-completion.ts`接新用户消息、GENERATION_STARTED与QQJ正式就绪通知，CHARACTER_MESSAGE_RENDERED仅补检查。`sources/qqj-readiness.ts`用identity.qqjChatId对齐当前scope，将宿主0基messageIndex转换为seq；无桥或资料未就绪时等待，正常宿主事件重接晚加载或替换的桥。history reader按正式就绪上界读取，允许已就绪的末个AI楼，恢复QQJ隐藏原角色并排除当前流式楼与上界外正文。忙中通知由原after-save检查承接，停止/失败/候选不自动恢复；无轮询、持久队列或额外模型阶段。
 
-`simulation/world-construction.ts`以完整许可卡书、精简目录与稳定正文做一次基础请求，在同world保存人物/稳定社交群及明确关系，复用当前活动、局部情绪和展示接纳，并保留经历、知情及人工记录。基线窗口标`purpose:baseline`，`worldBaseline`只记本次起点与首次current待流转标记，不存第二份世界。构建不推进`processedThroughSeq`且保留原`automaticDevelopmentEnabled`；直接构建与构建重存均结束本次操作，不触发after-save追加味听。手动重整独立于增量游标，重读许可卡书并重审自动基础。初始读取从稳定当前资料取材，已处理楼标参考，不据旧正文回改当前事务/在场；构筑与手动首次听共用已有当前钟/端点，处理位置及首次位置单调。手动首次流转读取基线S而非旧P→S；已启用且有基础的自动路径按成功游标处理真实新楼，不因`needsCurrentDevelopment`重复旧基线。历史覆盖不把基线当已发展区间，过去投影严格取所选窗之前的保存链，当前概况不会回灌旧窗或同S旧current窗。
+常规流转用新正文命中的事项词和已选人物做一次定向材料准备。听从同一事项 ID 承接，事项与经历用 description 原文，新写入只存正文，已存标题可作为旧档正文后备。正文事实只通过 facts[].activityId 指向已给活动 ID 或同答成立的 key。结清事实记一次，同楼独立事实保留自己的正文。同答且覆盖该事实源楼的已接纳事项参与者校准，会限制事实的连线范围；冲突只影响归属。无进展的活动从已处理窗口派生淡出，原状态、经历与 ID 保留。味的公开观察应给同阶段正式楼号与公开引文，观察参与者和新增断言分开。亲近沿有据关系变化更新，担忧保底需要明确持续的公开缘由。
+
+`simulation/flow-focus.ts` 保留本批正文、人物和临时活动安排相关事项。无直接触发的可推进旧事项至多两个，日常候选可带一个必要的旧事项作背景。听优先为有生活依据且本窗可行动的人物轮换创作机会。`vendor/gouhua-vectors` 来自构画 4.2.3 的六池和权重算法，第一次实际取用时建权重，按 scope 与目标楼确定本批短角度。每批至多三人，角度随原听请求发送。构筑与味沿用原配方元数据。
+
+
+`simulation/world-construction.ts`以完整许可卡书、精简目录与稳定正文做一次基础请求，在同world保存人物/稳定社交群、明确关系及可选生活环境context，兼容原当前活动、局部情绪和展示返回的接纳，并保留经历、知情及人工记录。基线窗口标`purpose:baseline`，`worldBaseline`只记本次起点与首次current待流转标记，不存第二份世界。构建不推进`processedThroughSeq`且保留原`automaticDevelopmentEnabled`；直接构建与构建重存均结束本次操作，不触发after-save追加味听。手动重整独立于增量游标，重读许可卡书并重审自动基础。初始读取从稳定当前资料取材，已处理楼标参考，不据旧正文回改当前事务/在场；构筑与手动首次听共用已有当前钟/端点，处理位置及首次位置单调。手动首次流转读取基线S而非旧P→S；已启用且有基础的自动路径按成功游标处理真实新楼，不因`needsCurrentDevelopment`重复旧基线。历史覆盖不把基线当已发展区间，过去投影严格取所选窗之前的保存链，当前概况不会回灌旧窗或同S旧current窗。
 
 `ui/DevelopmentControls.vue`在原世界观标题与按钮之间，根据当前配置、读取状态、已保存启用标记和DevelopmentView派生绿/橙状态文字。保存候选、失败、停止及重读沿原生命周期呈现，没有独立健康状态、定时器或请求；构筑保存中停止后保留实际已保存结果并提示手动继续。
 
-新任务只resolve实际主模型，沿既有正式client/P代号/65536输出机制。前置QQJ资料是本地批量读取，人物只提供必要字段与短底账，事实事件按关联闭包提供一份；不依赖QQJ异步摘要追平。事件按序仅采用显式变化，段末活动checkpoint独立且仅实际变化者更新；人工保护、已知/报告知情、明确正文校准和原revision保存保留。
+历史幕后补写派发到主模型，沿既有请求客户端、人物代号和65536输出上限。前置QQJ资料是本地批量读取，人物只提供必要字段与短底账，事实事件按关联闭包提供一份；不依赖QQJ异步摘要追平。事件按序仅采用显式变化，段末活动checkpoint独立且仅实际变化者更新；人工保护、已知/报告知情、明确正文校准和原revision保存保留。
 
-旧历史服务源码继续保留，当前不暴露其旧UI；共用接纳不再将段末概况自动合入事件。以下旧普通plan/advance说明仅为保留实现，当前主页的新发展不调用双模型路径。主楼回流尚未接通。
+旧历史服务源码继续保留，当前不暴露其旧UI；共用接纳不再将段末概况自动合入事件。当前百相流转走味与听。下文的普通 plan/advance 描述保留的旧入口。主楼回流尚未接通。
 
-开发入口见 [agent.md](../agent.md)，产品目标与待办见[产品设计](design.md)。本文件描述 `0.1.0-alpha.59` 本地源码，实际安装状态依清单；实际安装版本与资源以[安装清单](/home/admin/sillytavern/data/codex-private/baimian-trajectory-20261021/latest-deployment.json)为准，当前授权、待办及验收状态以[私有 memory](/home/admin/sillytavern/data/codex-private/baimian-trajectory-20261021/memory.md)为准。历史幕后仍为一次整批生成与一次整批 CAS，旧普通推进保留真实补读依赖。语义步骤、故事窗口、解析与保存边界不自动对应独立 API。
+当前版本的安装和内测说明见[安装内测版](../README.md#安装内测版)与[发布公告](updates-0.1.0.md)。历史幕后仍为一次整批生成与一次整批 CAS，旧普通推进保留真实补读依赖。语义步骤、故事窗口、解析与保存边界不自动对应独立 API。
 
 ## 模块与权威来源
 
@@ -27,7 +32,7 @@
 | `host/host-context.ts` | 集中兼容 SillyTavern 与 Luker 上下文 |
 | `host/story-input.ts`、`story-history.ts`、`story-text.ts` | 正式正文入口、历史范围与 assistant 正文清洗 |
 | `simulation/person-context.ts` | 从同一世界快照派生每人事项、参与经历、明确知情和持续后果，不另存缓存或档案 |
-| `simulation/atmosphere.ts`、`creative-frame.ts`、`development.ts` | 情绪成品、可复现有限配方及听觉实际发展；风向范围与新增断言/知情分开，依据被校准推翻时整条失效 |
+| `simulation/atmosphere.ts`、`creative-frame.ts`、`development.ts` | 局部风向、旧配方元数据及听的场外发展。风向范围与新增断言和知情各自校验，依据被校准推翻时风向失效 |
 | `simulation/prompts.ts`、`parse.ts`、`advance.ts` | 当前计划/落实编排、正式回答解析与活动/事件/知情结果合并 |
 | `simulation/trajectory.ts`、`trajectory-batch.ts` | 历史整批提示/解析、本地时间承接、临时过去投影，不写仓储 |
 | `simulation/calibration.ts`、`fact-sources.ts`、`domain/world-facts.ts` | 正文依据资格、明确校准、客观有效性及知情分类 |
@@ -37,7 +42,7 @@
 | `storage/bainiao-client.ts`、`world-repository.ts` | 白鸟 records 与版本 CAS，读写单条百面相世界记录 |
 | `application/people-world.ts`、`trajectory.ts` | 同一控制器装配业务、保存确认与界面派生；无第二任务系统 |
 | `graph/*`、`ui/*` | 从同一快照投影当前活动、图谱、概况、完整阅读、设置与接续页 |
-| `index.ts`、`App.vue`、`ui/PanelShell.vue` | 宿主菜单、ShadowRoot、窗口与单控制器装配；窗口外无暗幕 |
+| `index.ts`、`App.vue`、`ui/PanelShell.vue` | 宿主菜单、ShadowRoot、窗口与单控制器装配；窗口外无暗幕，手机完整外点关闭；geometry沿当前QQJ可视视口与宿主原点补偿 |
 
 QQJ 拥有人物目录、原始状态、记忆和档案。百面相只保存 `st-dollars / npc-world-{QQJChatId} / world` 中的活动、事件、知情、故事时间、处理位置及覆盖范围。人物 ID 包含 QQJ 聊天身份和实体 ID，不按显示名合并；目录 `selected` 或是否建档不影响资格。
 
@@ -58,7 +63,7 @@ API 独立配置或共享预设引用保存在白鸟 `st-dollars / settings / ap
 
 正文事实分批内部默认 24,000 正文字符。历史整批没有 48k 运输包或 24k 整包门槛；batch 请求单独使用 65,536 输出参数，依据当前已知 Gemini 3.8 Flash 官方规格，不代表所有 OpenAI 兼容模型、私有 alias 或代理都接受。普通任务输出参数保持原值。显式 finish_reason=length 报告结果不完整，不把残缺输出当覆盖完成，不自动追加请求。真实渠道容量与语义效果仍待实测。
 
-普通当前资料读取继续一般/聚焦 16,000/40,000 字符及 QQJ 正式单次读取上限100人；历史不套用这项当前资料接口门槛。这些是接口参数，不是用户预算选择。
+已构筑世界的常规流转将关联询问压到 1,600 字符，一批材料总预算 8,000 字符。千千结单查询上限 100 人，超过时沿原接口在同批分块。构筑与历史仍走各自原有的读取范围。
 
 ## 解析、过去状态与保存
 
@@ -78,11 +83,11 @@ API 独立配置或共享预设引用保存在白鸟 `st-dollars / settings / ap
 
 当前一层图使用原生SVG连线及Smile节点，支持全部明确邻居与全部当前事务/圈层入口；上下级等有向边保持原方向，节点标邻人的相对角色。旧Cytoscape页不在当前入口挂载。Smile/Plasma来自固定commit的avatar-generator（MIT），Health Icons Outline为CC0；最少源码、本地SVG及许可证随包提供。
 
-API 组件和局部样式直接移植 QQJ：角色选择为上下布局，文档流 listbox、模型列表与 prompt/confirm 沿源正常交互。`appearance.ts` 同次读取宿主信号，派生整体语义变量与 QQJ API 的 auto/day/night 源色板，复用既有监听。外观移植不另造配置业务。
+API 组件和局部样式直接移植 QQJ：角色选择为上下布局，文档流 listbox、模型列表与 prompt/confirm 沿源正常交互。`appearance.ts` 同次读取宿主信号，派生整体语义变量与 QQJ API 的 auto/day/night 源色板，复用既有监听。外观移植不另造配置业务。主窗几何与外点手势由panel-geometry/panel-interactions管理；API Vue弹窗挂主ShadowRoot独立层，与原生弹窗共用dialog-layout视口补偿和完整点按判定。SettingsPage的active贯穿主窗可见性，离开时取消草稿及本次待开窗动作；API存储、派发和主副用途合同保持。
 
 原生 ST 读取 `ctx.chat` 当前 swipe，Luker 读取正式 `readPluginFloors()` cooked 正文。assistant 只删除完整配对 DRAFT，唯一闭合 content 才作为正式正文，保留明确时间参考；user 原文不清洗。历史额外纳入同 QQJ scope 自动隐藏旧楼，排除真正系统楼及其它 scope 的隐藏记录。界面楼号0-based，内部 `seq`、来源、模型引用、处理位置和覆盖范围1-based，仅输入/展示换算，不迁移存档。
 
-旧记录处理位置已超出稳定当前正文时，初始重整从当前稳定资料取参考，保已有钟/锚/事务与在场，不回退游标或重演历史。两模块成功后同楼无新正文不再请求。普通新正文按原游标读取，听觉同答给有据 `windowEnd` 判断流逝，无可信起点保持当前瞬时窗。明确公历中文日期时分会归一化并保留分钟精度；其他历法保持未知。粗作息可有依据暂定，新增精确临时安排必须引用本批合格正式正文sourceSeqs，参考钟点不作安排事实。
+旧记录处理位置已超出稳定当前正文时，初始重整从当前稳定资料取参考，保已有钟/锚/事务与在场，不回退游标或重演历史。两模块成功后同楼无新正文不再请求。普通新正文按原游标读取。已识别正式正文时钟直接成为听的成功截止，旧的可信公历区间以右端起算。无可核时钟时沿有据描述和当前瞬时窗。明确公历中文日期时分会归一化并保留分钟精度；其他历法保持未知。粗作息可有依据暂定，新增精确临时安排必须引用本批合格正式正文sourceSeqs，参考钟点不作安排事实。
 
 ## 交付边界
 
@@ -90,13 +95,15 @@ alpha28 本地候选完成离线生产路径/模拟宿主验证，未完成真�
 
 ### 可丢弃的展示提示
 
-QQJ公共profile仍是唯一档案权威。SourcePerson从同次已读profile提供personality/conduct/expression等性格字段及identityRelations原文；情绪请求只询问尚无有效提示的字段。同答可选presentationUpdates与风向visual经正式人物引用codec、解析、原world CAS及投影承接。temperament六类，visual仅temperature/rhythm两维；坏可选项不拖业务。程序按提供原文的owner及相关字段盖basisKey，源改变/清空后不投影旧提示，下一次正常情绪调用可补，不从浏览触发调用。关系不是第二数据库；没有有效提取时只显示未整理状态。听觉语义输入剔visual，presentation不回灌剧情。
+QQJ 公共 profile 仍是唯一档案权威。味与构筑借原有请求整理当前尚无有效提示的明确关系，用提供者的 identityRelations 绑定来源指纹。来源改变或清空时按当前有效关系投影，下次正常请求可更新。可选 presentationUpdates 与风向 visual 经正式人物引用、解析和原 world CAS 接纳。听输入沿用独立语义投影，旧头像 temperament 字段随旧档保留。
 
-头像颜色与表情随机流独立，按人物ID稳定；圈纹按圈ID及两维分类静态生成，组件只在实际输入变化时绘制，不存PNG或跨聊天图片缓存。内部olfaction名称保留，界面味=情绪、嗅=公开信息，未新增公开信息调用。
+首次投影按既有性格线索选定头像类型，未匹配时锁定 unknown 并沿原人物 ID 种子取色与表情。控制器按聊天保留待保存的类型，原 world CAS 用 avatarTemperaments 按正式人物 ID 保存。已保存类型优先，旧模型 temperament 仅作历史兼容，关系仍以原字段的来源指纹核对。圈纹按圈 ID 与有效情绪强弱静态生成，旧 visual-only 记录沿原两维展示。头像与圈纹在实际输入变化时绘制。
+
+主面板由 `ui/blue-glass.ts` 生成同一 384×384 的 Interference ID 6。一次渲染内按行平移、线性插值并反射边缘，用原 2D 画布编码 PNG。读回失败时沿原图，固定夜色常驻缓存，其他配色沿原有四项和一分钟上限。
 
 ## 世界底账与关联记忆（alpha45）
 
-同一NpcWorldState.foundation保存少量人物语义块、来源、稳定群成员区间与明确关系。统一目录贯穿refresh/publish/正常推演，自有人物不向QQJ伪造身份；外部材料仅读明确绑定子集。构筑读取全部许可启用条目及条件，不限constant或均摊截断，也不等QQJ全记忆就绪。已有完整且实际整理过许可参考的短基础后，普通味听不重新载整书；稀疏或旧plugin-only基础在原味请求内补读卡书。味先接纳静态基础再解析同答圈层引用，ACK后批名单与派生角色重基，听只承接短基础和已存背景。
+同一NpcWorldState.foundation保存少量人物语义块、来源、稳定群成员区间与明确关系。统一目录贯穿refresh/publish/正常推演，自有人物不向QQJ伪造身份；外部材料仅读明确绑定子集。构筑读取全部许可启用条目及条件，不限constant或均摊截断，也不等QQJ全记忆就绪。已有底账的常规味听针对本批候选继续补短档，整书读取集中在构筑。味先接纳静态基础再解析同答圈层引用。ACK后用正式新人物和本批有据别名重算候选，沿用已读材料及QQJ正式目录。
 
 构筑返回漏写全部行级来源字段时，baseline窗口的referenceSources保存本次实际提供的参考集合，各基础项以construction-reference引用该窗口；它记录本次取材，不能充当某行来自特定书条目的证明。显式来源仍核到实际输入，普通推进仍按明确事实维护。已知人物代号误置key在构筑与味的静态foundation中复用已给ID，未知key仍是新人物；QQJ非空人工决定保持优先，空字段允许独立许可书补充，旧QQJ简介不回灌。静态补充沿用同一referenceSources窗口合同，显式空/坏来源仍局部拒收。
 
@@ -104,7 +111,7 @@ QQJ公共profile仍是唯一档案权威。SourcePerson从同次已读profile提
 
 味的basisMaterialRefs可引用实际输入的有效foundation人物/群/关系，以及同答真正接纳的局部key；基础条目的basisEventIds一并承接，原事件被纠正后背景整体失效。群体范围不等于成员当前心情或知情，在场新增具体断言仍沿既有边界。省略更新保同一背景，不随每楼消失。
 
-`simulation/social-context.ts`只从有效未结束的基础群/关系派生取材单位，排已退群成员及依据已被纠正的项。味专用`atmosphereContext`以background（圈、基础、旧底色和已有材料）为主体，changes保完整正文、来源合同、时间与在场归属；顶层轻people供统一P编码。听仍用developmentContext，味不运输routines/restHint/calibration编排合同。
+`simulation/social-context.ts`只从有效未结束的基础群/关系派生取材单位，排已退群成员及依据已被纠正的项。味专用`atmosphereContext`以background（圈、基础、旧底色和已有材料）为主体，changes保完整正文、来源合同、时间与在场归属；人物目录只在background.people发送一次，统一P编码从该入口读取。常规味保本批相关旧圈及公开经历，私人长档只给人物约束。听的常规投影用同一份旧活动、事件和来源范围派发与接纳，在完整世界上合并。明确复提的已完事项和少量没有关联经历的已完校准记录仍可用原ID。
 
 请求记忆保每人近期4项无有效事件的完成checkpoint及少量无主体完成，按已存窗口顺序承接；当前待办personContexts仍仅未完。完整authority保留全部活动。听列表不再过滤completed，最新进展仍按同activityId的有效自创事件判定，不把正文/人工记录冒充自创。粗作息单个数字pair仅机械归一为原嵌套数组，门控规则不变。既有诊断允许foundationRejections，正常前端可区分静态补充与风向拒收。
 
@@ -112,10 +119,36 @@ QQJ公共profile仍是唯一档案权威。SourcePerson从同次已读profile提
 
 味的foundation接纳先处理人物key，再编码一次并重建统一边界供群/关系共用；静态资料/有效旧事件归纳、本行明确正式正文、事件支持的动态社会变化分别沿原来源合同。无新增断言的已知背景可含在场成员，显式stage仍核有效；非空/坏断言不由书源或事件继承chat绕过。两阶段边界拒收复用现诊断；听同答event-key→foundation路径保持，无新存储/调用。
 
+嗅由手动「新增消息」或当前聊天开启的自动间隔触发，单独用主 API 生成一批。只取最近已完成正文和少量可用的千千结背景。模型选择载体和数量，逐条验证出处、楼号与公开边界。正文按聊天和载体写白鳥独立记录，目录通过记录 ID 获取类别与条数。旧世界内的目录引用仍可读取。首页常驻纸媒、传闻、广播、公告、专题、副刊，循环换焦。新稿按格式归档，旧目录仍沿原索引惰性读取。专题及副刊面向公开长文，副刊可刊载世界内虚构作品。逐项保留已确认的写入，普通味听沿自己的世界存储继续。
+
 静态新卡沿QQJ公开桥确已ready的聊天身份透传scope，人物目录尚idle不丢该身份。无稳定正文的StoryInput仍null/[]；构筑window/foundation/baseline数值0仅表示未处理正文，sourceSeqs为空，processed/storyTime仍null；首流转不以baseline0限制未来正文。无身份或实际资料则等待不发模型。重复结束同一群/关系保最初endedWindowId，旧投影不因再次重整改变。
 
-`domain/social-circles.ts`共享有效社交对象、精确归属和纯派生圈卡；foundationReferences移至现world-foundation域并保原simulation出口。Taste/FourSenses/图入口/focusMood共用foundation G/R稳定key，群必成卡、关系仅已绑定风向成卡；卡名/成员由foundation决定，同圈正文去重全保。boundAtmospheres只归一主体/群标题，保原personIds供听与life-materials；旧unbound仅在味输入保留修正，不全局删除。显式circleRef未知拒相关row，缺省只从已接纳段唯一G/R恢复；background可据已知circle，change先过自身来源再附circle依赖。该主体basisEventIds沿原纠正整体失效合同，不新增圈库存储/调用/状态。听body末标点只在selector显示派生，canonical activity/event不变。
+`domain/social-circles.ts`共享有效社交对象、精确归属和纯派生圈卡；foundationReferences移至现world-foundation域并保原simulation出口。Taste/FourSenses/图入口/focusMood共用foundation G/R稳定key，群必成卡、关系仅已绑定风向成卡；群名和成员沿foundation，明确关系的主体名取同圈有效风向已经接纳的title。旧双人拼名按短角色或“日常往来”派生展示。正常味可沿原id和circleRef修名，tasteCircles与boundAtmospheres共用主体名，关系角色仍从socialContexts读取。同圈正文去重全保。boundAtmospheres保原personIds供听与life-materials；旧unbound仅在味输入保留修正，不全局删除。显式circleRef未知拒相关row，缺省只从已接纳段唯一G/R恢复；background可据已知circle，change先过自身来源再附circle依赖。该主体 basisEventIds 沿原纠正整体失效合同。群或关系的 taste 字段附存圈名、人工成员和移除标记，公开风向投影使用这一范围。正常味回包的 circleNameUpdates 可为已给暂名的同一圈补正式名。人工名优先，手动修改沿当前世界 CAS 保存。听用lastHearingWindow标记实际保存的本轮及本轮更新的事项概况，并读取该窗口内可展示的事件进展。旧档从唯一可信的听截止窗口回退，缺少依据时按状态和原顺序展示。听正文末标点在显示时派生。已完成状态表达整条事项收束，页底「余音」默认折叠。旧结束线由正文校准承接，场外新目标另起新线。
 
-模型返回的同类正式旧ID误放在key时，统一按旧身份接纳并保留本答引用；显式id优先，冲突引用拒收，其他新key继续新建。构筑、味、听、共享校准和原历史消费者复用同一机械归一，不以名称或参与者推断身份；原来源、人工和阶段归属校验继续在各消费者执行。
+模型返回的同类正式旧ID误放在key时，统一按旧身份接纳并保留本答引用；显式id优先，冲突引用拒收，其他新key继续新建。构筑、味、听、共享校准和原历史消费者复用同一机械归一，不以名称或参与者推断身份；原来源、人工和阶段归属校验继续在各消费者执行。同一答复明确提供现存id与当前QQJ身份时，先验证绑定再允许独立提供者行补齐字段。仅已接纳的提供者引用折回原稳定ID并供同答的下游使用，已有独立占用的记录按原身份处理。
 
 味简介由MoodOverview按真实DOM自然排版判断是否超过两行；只有有效折叠才输出按钮、ARIA收展状态与三角。等宽测量不含三角留白，继承同一字体与折行，隐藏测量盒不进入可访问文本或增大滚动范围。局部ResizeObserver与内容更新跟随宽度、字体/字号及正文变化，组件卸载断开，不增加业务状态、持久副本或全局轮询。
+
+## alpha.62 世界基础接纳
+
+foundation.context每条保存id/text/sources、可选basisEventIds及建立/当前窗口，schemaVersion仍为1。常规听选择少量环境记录并保它们的依据，完整构筑和历史沿原环境投影；foundationAsOf仅投影已建立且当前文本属于旧窗口的环境。味听共用foundationForInput，无原书重读；context缺省不参与缺基础判断。构筑前准备当前QQJ必要资料，紧接味听复用同批材料，仅新人物缺口补读，配置仍在每次派发前重新解析。
+
+construction-response仅供world-construction使用：定位唯一正式顶层或已知包装，独立JSON围栏可含普通说明；保留截断前闭合的完整记录，拒绝示例、嵌套非结果、多答案和重复键，不补造坏身份或半条事实。client仅为构筑接纳HTTP成功length正文并在既有诊断记录不完整事实，其它任务仍拒绝截断。逐项来源可精确则保精确，缺失/坏码使用基线一次保存的真实参考集合，不冒充逐项引文。已接纳构筑短基础与legacy plugin-only投影区分，人工字段包括明确清空保持最高优先；正式模型输入的目录仅保独立公共参考，五块只在foundation发送一次。
+
+## alpha.67 当前情绪与 Plasma
+
+`domain/emotion.ts`维护可选EmotionState：十一项独立0–100强弱、公开缘由、持续原因、事情轻重、故事时间锚和最后处理楼。正式英文键优先，其次精确中文名，再次已确认的愤怒/anger→不满、喜爱/love→亲近、好奇/curiosity→期待、害怕→恐惧；不推断已拆分的愉悦和失落。坏单项不影响可用文字或其他成分。ongoing只表示造成当前情绪的具体原因确实仍持续未解决，普通长期关系或日常继续不构成true依据；内部summary也不凭该布尔值补造未落定事态或关切。
+
+普通负面上限45，确有新小摩擦时单次至多加8；旧高值仍可下降。没有新合格正文或已存事件窗口、没有时间推进时，已有强弱与持续原因保持。通过现有正文seq和事件所属窗口判新旧，最后一组引用只用于同批承接，不建立无界已见事件表。可信公历故事时间的日常半衰期120分钟、重大事态1440分钟、当下亲近1440分钟；未落定担忧留底至多25。缺锚首次遇可信时间只建锚，不猜过去耗时；未知、同刻和倒退时间不衰减。松弛/兴奋同高（70起）取55/55，跨同圈条目也适用。关系底色不由短时情绪改写。
+
+同答background/change各自可附emotion；隐私、人物、引用和阶段边界先于数值接纳。明确private的分段，以及已知事件参与范围不足以支持共享的分段连文字一起隔离，独立公开段继续保留。QQJ来源前缀本身不表示私有，精确来源/别名继续可用。味不运送自由router/stateText/memoryText、个人知情表和个人上下文；profile与基础人物资料仅作人设约束。共同参与事件附原参与范围，不能将其当全圈知情；现有schema没有逐句公开标记，正文与自由描述的公开语义仍由本次模型判断，程序不作心理关键词判定。
+
+重大增幅要求change段给本批合格正文sourceSeq和非空逐字原句majorEvidence，且该引用确属新依据。程序只验证出处和新旧，重大轻重由同次模型按主剧情语义判断。日常minor仍受45/+8限制，旧主楼依据不能被重复用于顶高。卡片直接显示被接纳的模型description，保留同圈各段并仅作精确文字去重；publicBasis仅作内部依据，不再生成程序叙述模板。数值回落继续用于内部约束与颜色；没有新模型说明时保留原文，听另收到同圈合成有效值与降温约束。模型自由缘由仍须遵守公开范围和不代演原则。
+
+`visuals/emotion-colors.ts` 完整列出上游示例色源与业务选位，来源为 avatar-generator 的 `examples/vanilla/main.ts`（blob `f0a47a9e2a44fca3f44c71c1ae621052372972e5`）。所有正情绪值按 1.4 次幂混进三个基色，最强的三项各把自身色引入对应色位，比例为该项与峰值之比的平方根乘 0.9。用归一峰值的平方根从中性色过渡到合成色，其余饱和度、明度与原生纹理权重沿用原规则。Plasma 画布等比例裁切，置于圈名标题内。标题可换行，文字下有渐隐衬底，画布失败时仍可阅读。
+
+同圈各项取最大有效强弱，不按条数相加。原风向文字、身份与来源仍保存；Plasma和听的circleEmotions使用相同合成值，数值不用于自动改写界面说明。附加资料只要有ready/empty便继续保留可用结果；全部waiting仍等待、全部错误仍报错。精确circleRef可派生缺标题，静态foundation复用构筑的坏成员连接过滤，不按名称补身份。保存重试仍只重存候选，听和下一味读实际ACK，无额外模型阶段。
+
+人格待补由foundationPersonalityPendingPersonIds单列，只报告非人工且disposition空的人物，味/听共用并沿P代号编码。foundationSupplementPersonIds与needsFoundationSupplement仍只控制原来源/参考核对，空性格不扩大卡书读取门槛。FOUNDATION_CONTRACT要求同答有据补空与凝练丰富；applyFoundation保原身份、来源和场内边界，disposition的省略、空、坏值及人工性格更新不擦旧值，其他有效行继续接纳。听的人物更新只消费已给正式正文或选中的有效既存event，事件阶段顺序保持。
+
+mergeWorldPeople在SourcePerson内暂留profilePresentationSource作为本次原始公开展示来源，与profileReferenceDescription同属派生上下文，不写入world或QQJ。非空原性格和人工明确空白优先；有被接纳来源的foundation.disposition才填空personality，relations原文保持。反复合并从原资料重新派生，避免旧后备盖住新底账。保存 ACK 更新性格时，头像在本地按当前文字重新匹配。

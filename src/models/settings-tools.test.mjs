@@ -22,7 +22,7 @@ test('settings tools use the host model endpoints once with normalized URLs and 
     });
     const profile = { url: 'https://models.example/', model: 'model-a', key: 'stub-key' };
     assert.deepEqual(await tools.fetchModels({ ...profile, model: '' }), ['model-a']);
-    await tools.testConnection(profile);
+    await tools.testConnection({ ...profile, model: 'gpt-6-luna' });
     assert.equal(requests.length, 2);
     assert.equal(requests[0].url, '/api/backends/chat-completions/status');
     assert.equal(requests[1].url, '/api/backends/chat-completions/generate');
@@ -30,7 +30,9 @@ test('settings tools use the host model endpoints once with normalized URLs and 
     const testBody = JSON.parse(requests[1].init.body);
     assert.equal(statusBody.reverse_proxy, 'https://models.example/v1');
     assert.equal(statusBody.proxy_password, 'stub-key');
-    assert.equal(testBody.model, 'model-a');
+    assert.equal(testBody.model, 'gpt-6-luna');
+    assert.equal(testBody.max_completion_tokens, 256);
+    assert.equal(Object.hasOwn(testBody, 'max_tokens'), false);
     assert.equal(new Headers(requests[1].init.headers).get('x-csrf-token'), 'stub-token');
     const leakingError = createModelSettingsTools(async () => new Response(JSON.stringify({ error: { message: 'rejected stub-key because of auth' } })));
     await assert.rejects(leakingError.testConnection(profile), error => !error.message.includes('stub-key') && /测试连接失败/.test(error.message));

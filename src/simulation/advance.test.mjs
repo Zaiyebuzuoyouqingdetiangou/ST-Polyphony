@@ -21,7 +21,7 @@ test('one plan and one batch preserve activity continuity and link results/knowl
   assert.equal(calls.length, 2);
   assert.deepEqual(calls[1].input.relevantEvents.map(event => event.id), ['old-event']);
   assert.equal(result.state.activities.find(activity => activity.id === 'old-a').status, 'waiting');
-  assert.equal(result.state.events.at(-1).activityId, result.state.activities.find(activity => activity.title === '下周交付').id);
+  assert.equal(result.state.events.at(-1).activityId, result.state.activities.find(activity => activity.description === '准备交付。').id);
   assert.equal(result.state.knowledge.some(item => item.personId === 'p1' && item.eventId === old.events[0].id), true);
   assert.equal(result.state.knowledge.some(item => item.personId === 'p2' && item.eventId === result.state.events.at(-1).id), true);
 });
@@ -248,7 +248,7 @@ test('an explicit activity participant list replaces prior membership and report
   assert.deepEqual(explicit.state.activities[0].participantIds, ['p1']);
   assert.match(explicit.report.message, /格式或归属无法确认/);
   const omitted = await run({ activities: [{ id: 'a1', title: '继续交付' }], events: [], knowledge: [] });
-  assert.equal(omitted.state.activities[0].title, '继续交付');
+  assert.equal(omitted.state.activities[0].title, '交付');
   assert.deepEqual(omitted.state.activities[0].participantIds, ['p1', 'p2']);
 });
 
@@ -280,7 +280,7 @@ test('a malformed batch field is reported without losing a valid single-object i
     return task === 'plan' ? { personIds: ['p1'], activityIds: [] } : { activities: { key: 'new', title: '新活动', participantIds: ['p1'] }, events: {}, knowledge: [] };
   } } } });
   assert.equal(result.state.activities.length, 1);
-  assert.equal(result.state.activities[0].title, '新活动');
+  assert.equal(result.state.activities[0].description, '新活动');
   assert.match(result.report.message, /格式或归属无法确认/);
   await assert.rejects(advanceBatch({ people, state: createEmptyState('chat'), story, dependencies: { materials, model: { async request({ task }) { return task === 'plan' ? { personIds: ['p1'], activityIds: [] } : { activities: [], events: '无法识别', knowledge: [] }; } } } }), /尚未保存/);
 });
@@ -308,7 +308,7 @@ test('recognized Chinese statuses map correctly, invalid statuses preserve old v
     return task === 'plan' ? { personIds: ['p1'], activityIds: ['old-a'] } : { activities: [{ id: 'old-a', status: '无法理解' }, { key: 'new', title: '新活动', status: '已完成', participantIds: ['p1'] }, { id: 'old-a', status: '进行中' }], events: [], knowledge: [] };
   } } } });
   assert.equal(result.state.activities.find(item => item.id === 'old-a').status, 'active');
-  assert.equal(result.state.activities.find(item => item.title === '新活动').status, 'completed');
+  assert.equal(result.state.activities.find(item => item.description === '新活动').status, 'completed');
   assert.match(result.report.message, /状态无法确认/);
 });
 

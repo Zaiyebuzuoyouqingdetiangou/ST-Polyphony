@@ -1,7 +1,9 @@
-import {validPresentation,type PresentationHint,type ProfileRelation} from './presentation';
+import {recordBody} from './world';
+import {avatarTemperament,isTemperament,validPresentation,type PresentationHint,type ProfileRelation,type Temperament} from './presentation';
 import type { LifeRoutine, LifeArrangement } from '../simulation/life-rhythm';
 import {mergeWorldPeople,foundationForInput,type WorldFoundation} from './world-foundation';
 import {projectSourcePerson} from './source-people';
+import {publicMessageRefs,type PublicMessageRef} from './public-messages';
 import type { Activity, Knowledge, SimulationWindow, StoryTime, WorldEvent, WorldSnapshot, DevelopmentAtmosphere, DevelopmentCreativeFrame } from './world';
 
 export interface NpcWorldState {
@@ -11,6 +13,9 @@ export interface NpcWorldState {
   processedThroughSeq: number | null;
   /** Sequence at which this version's current-time activity pass last succeeded. */
   currentTimeStartedThroughSeq?: number;
+  /** Saved hearing cutoff and its changed activity summaries, independent of other modules. */
+  lastHearingWindow?: WorldSnapshot['lastHearingWindow'];
+  publicMessageIndex?:PublicMessageRef[];
   automaticDevelopmentEnabled?: boolean;
   /** A construction anchor is current author context, not development across the preceding gap. */
   worldBaseline?: { throughSeq: number; windowId: string; needsCurrentDevelopment: boolean };
@@ -22,6 +27,8 @@ export interface NpcWorldState {
   developmentCreativeFrame?: DevelopmentCreativeFrame;
   developmentAtmospheres?: DevelopmentAtmosphere[];
   developmentPresentation?: PresentationHint[];
+  /** Avatar types chosen on first display, keyed by the world's canonical person IDs. */
+  avatarTemperaments?: Record<string,Temperament>;
   historyRanges?: Array<{ fromSeq: number; toSeq: number }>;
   simulationRanges?: SimulationWindow[];
   activities: Activity[];
@@ -44,16 +51,28 @@ export function createEmptyState(scopeId: string): NpcWorldState {
   return { schemaVersion: 1, scopeId, storyTime: null, processedThroughSeq: null, historyRanges: [], activities: [], events: [], knowledge: [] };
 }
 
-export function projectWorldState(scopeId: string, people: WorldSnapshot['people'], state: NpcWorldState): WorldSnapshot {
-  const existing=new Set(people.map(person=>person.id));
-  people=[...people,...mergeWorldPeople([],state).filter(person=>!existing.has(person.id)).map(projectSourcePerson)];
+function savedHearingWindow(state:NpcWorldState):WorldSnapshot['lastHearingWindow'] {
+  const windows=Array.isArray(state.simulationRanges)?state.simulationRanges:[];
+  const hearingWindows=windows.filter(window=>window?.id&&!window.purpose&&!window.referenceSources);
+  if(state.lastHearingWindow)return hearingWindows.some(window=>window.id===state.lastHearingWindow?.id)?state.lastHearingWindow:undefined;
+  if(state.automaticDevelopmentEnabled!==true||!Number.isSafeInteger(state.currentTimeStartedThroughSeq))return undefined;
+  const matching=hearingWindows.filter(window=>window.throughSeq===state.currentTimeStartedThroughSeq);
+  return matching.length===1?{id:matching[0].id}:undefined;
+}
+
+export function projectWorldState(scopeId: string, people: WorldSnapshot['people'], state: NpcWorldState, pendingAvatars?:Map<string,Temperament>): WorldSnapshot {
+  const known=new Set(people.map(person=>person.id));
+  if(state.foundation?.people.some(person=>!known.has(person.id))){
+    const extra=mergeWorldPeople([],state).filter(person=>!known.has(person.id)).map(projectSourcePerson);
+    for(const person of extra)known.add(person.id);
+    people=[...people,...extra];
+  }
   const activityByPerson = new Map<string, Activity[]>();
   for (const activity of state.activities) for (const id of activity.participantIds) {
     const list = activityByPerson.get(id) ?? [];
     list.push(activity); activityByPerson.set(id, list);
   }
   const hints=new Map((state.developmentPresentation??[]).map(h=>[h.personId,h]));
-  const known=new Set(people.map(p=>p.id));
   const profileRelations:ProfileRelation[]=[];
   const effectiveFoundation=foundationForInput(state.foundation,people);
   const projectedPeople = people.map(person => {
@@ -61,9 +80,17 @@ export function projectWorldState(scopeId: string, people: WorldSnapshot['people
     for(const edge of display.relations??[])if(known.has(edge.fromPersonId)&&known.has(edge.toPersonId)&&!profileRelations.some(e=>JSON.stringify(e)===JSON.stringify(edge)))profileRelations.push(edge);
     const activities = activityByPerson.get(person.id) ?? [];
     const current = activities.find(activity => activity.status === 'active') ?? activities.find(activity => activity.status === 'waiting') ?? activities.find(activity => activity.status === 'planned');
-    return { ...person, temperament:display.temperament,relationsPending:!!person.presentationSource?.relations&&display.relations===undefined, status: current?.title ?? (activities.length ? '暂无进行中的活动' : '尚无活动记录') };
+    let temperament=state.avatarTemperaments?.[person.id];
+    if(isTemperament(temperament))pendingAvatars?.delete(person.id);
+    else {
+      temperament=pendingAvatars?.get(person.id)??avatarTemperament(person.presentationSource?.personality);
+      pendingAvatars?.set(person.id,temperament);
+    }
+    return { ...person, temperament,relationsPending:!!person.presentationSource?.relations&&display.relations===undefined, status: (current && recordBody(current)) || (activities.length ? '暂无进行中的活动' : '尚无活动记录') };
   });
   for(const row of effectiveFoundation?.relations??[]){const edge={fromPersonId:row.fromPersonId,toPersonId:row.toPersonId,fromRole:row.fromRole,toRole:row.toRole,directed:row.directed};const index=profileRelations.findIndex(previous=>previous.directed===edge.directed&&(previous.fromPersonId===edge.fromPersonId&&previous.toPersonId===edge.toPersonId&&previous.fromRole===edge.fromRole&&previous.toRole===edge.toRole||!edge.directed&&previous.fromPersonId===edge.toPersonId&&previous.toPersonId===edge.fromPersonId&&previous.fromRole===edge.toRole&&previous.toRole===edge.fromRole));if(index>=0)profileRelations.splice(index,1);if(!row.endedWindowId)profileRelations.push(edge);}
-  return { id: scopeId, storyTime: state.storyTime, people: projectedPeople, developmentOnstagePersonIds:state.developmentOnstagePersonIds, activities: state.activities, events: state.events, knowledge: state.knowledge, simulationRanges: state.simulationRanges, atmospheres:effectiveAtmospheres(state),profileRelations,foundation:state.foundation };
+  const lastHearingWindow=savedHearingWindow(state);
+  const publicMessageIndex=publicMessageRefs(state.publicMessageIndex);
+  return { id: scopeId, storyTime: state.storyTime, people: projectedPeople, developmentOnstagePersonIds:state.developmentOnstagePersonIds, activities: state.activities, events: state.events, knowledge: state.knowledge, simulationRanges: state.simulationRanges, ...(lastHearingWindow?{lastHearingWindow}:{}), ...(publicMessageIndex.length?{publicMessageIndex}:{}), atmospheres:effectiveAtmospheres(state),profileRelations,foundation:state.foundation };
 }
 

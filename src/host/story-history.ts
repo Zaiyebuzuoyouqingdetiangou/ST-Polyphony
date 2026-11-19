@@ -46,14 +46,35 @@ function latestCompletedAi(chat: unknown, scopeId: string, processor: any, befor
   return null;
 }
 
+export function completedStorySeq(scopeId:string,getContext=getHostContext){
+  const context=getContext();
+  return latestCompletedAi(context?.chat,scopeId,context?.streamingProcessor);
+}
+
+export function hasCompletedStoryReplies(scopeId:string,afterSeq:number,throughSeq:number,needed:number,getContext=getHostContext){
+  if(throughSeq-afterSeq<needed)return false;
+  const chat=getContext()?.chat;
+  if(!Array.isArray(chat))return false;
+  let count=0;
+  for(let index=Math.min(throughSeq,chat.length)-1;index>=afterSeq;index--){
+    const message=chat[index] as HostMessage|undefined;
+    if(!message||message.is_user||message.isUser||message.role==='user')continue;
+    const turn=floorTurn({...message,text:messageText(message)},index+1,message,scopeId);
+    if(turn&&!turn.isUser&&++count>=needed)return true;
+  }
+  return false;
+}
+
 export function createStoryHistoryReader({ getContext = getHostContext }: { getContext?: () => HostContext | undefined } = {}): StoryHistoryReader {
-  return { readStoryHistory({ fromSeq, toSeq, scopeId, stableOnly = false, currentOnly = false }) {
+  return { readStoryHistory({ fromSeq, toSeq, scopeId, stableOnly = false, currentOnly = false, readyThroughSeq }) {
     const context = getContext(); const source: SourceRef = { kind: 'chat', id: 'current-history', label: '已有剧情' };
     if (!context) return { status: 'waiting', message: '等待酒馆正文入口就绪。', fromSeq, throughSeq: null, floorCount: 0, excludedFloors: 0, turns: [], source };
     const latestAiSeq = latestAiSlot(context.chat, scopeId);
-    let throughSeq = latestCompletedAi(context.chat, scopeId, context.streamingProcessor, stableOnly ? latestAiSeq : undefined);
-    if (throughSeq !== null && toSeq !== undefined && toSeq < throughSeq) throughSeq = latestCompletedAi(context.chat, scopeId, context.streamingProcessor, toSeq + 1);
-    const emptyMessage = stableOnly ? '等待新的稳定剧情；最新一条回复暂不处理。' : '所选范围内没有已完成的剧情正文。';
+    // A saved QQJ frontier can include the latest AI; the new streaming body stays outside it.
+    let limit = readyThroughSeq !== undefined ? readyThroughSeq ?? 0 : stableOnly ? (latestAiSeq ?? 1) - 1 : undefined;
+    if (toSeq !== undefined) limit = limit === undefined ? toSeq : Math.min(limit, toSeq);
+    let throughSeq = latestCompletedAi(context.chat, scopeId, context.streamingProcessor, limit === undefined ? undefined : limit + 1);
+    const emptyMessage = readyThroughSeq !== undefined ? '等待千千结保存新的稳定剧情资料。' : stableOnly ? '等待新的稳定剧情；最新一条回复暂不处理。' : '所选范围内没有已完成的剧情正文。';
     if (throughSeq === null || throughSeq < fromSeq) return { status: 'empty', message: emptyMessage, fromSeq, throughSeq, latestAiSeq, floorCount: 0, excludedFloors: 0, turns: [], source };
     if(currentOnly){const previous=latestCompletedAi(context.chat,scopeId,context.streamingProcessor,throughSeq);fromSeq=Math.max(fromSeq,(previous??0)+1);}
     let turns: StoryTurn[];

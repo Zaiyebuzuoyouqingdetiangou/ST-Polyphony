@@ -1,35 +1,308 @@
+.bmx-page{--bmx-record-body-size:calc(13px * var(--qqj-ui-fixed-scale, 1))}
 .bmx-world-content>.bmx-development-controls:empty{display:none}
-.bmx-hearing-page,.bmx-taste-page{padding-top:20px}
 .bmx-records-heading{display:flex;align-items:center;gap:8px;margin:0 0 4px}
-.bmx-records-heading h2{margin:0;font-size:16px;line-height:1.5;font-weight:600}
-.bmx-records-count{font-size:11px;color:var(--bmx-muted)}
+.bmx-records-heading h2{margin:0;font-size:var(--qqj-font-title);line-height:1.5;font-weight:600}
+.bmx-records-count{font-size:calc(11px * var(--qqj-ui-fixed-scale, 1));color:var(--bmx-muted)}
 .bmx-records-actions{margin-left:auto;display:flex;align-items:center}
 .bmx-records-heading .bmx-development-start-compact{min-height:32px;padding:5px 10px}
-.bmx-hearing-task{padding:15px 0 17px;border-bottom:1px solid color-mix(in srgb,var(--bmx-ink) 12%,transparent)}
-.bmx-hearing-task:last-child{border-bottom:0}
-.bmx-hearing-header{position:relative;display:flex;align-items:flex-start;gap:10px;min-width:0;min-height:26px;padding-right:32px}
-.bmx-window .bmx-hearing-more{position:absolute;right:0;top:-1px;display:grid;place-items:center;width:28px;height:28px;min-width:28px;min-height:28px;padding:6px;border:0;border-radius:6px;background:transparent;color:var(--bmx-muted);cursor:default}
-.bmx-hearing-more svg{display:block;width:16px;height:16px;fill:currentColor}
-.bmx-mood-description{position:relative;margin-top:6px;font-size:13px;line-height:1.65;overflow-wrap:anywhere;color:color-mix(in srgb,var(--bmx-ink) 78%,transparent)}
+.bmx-mood-description{position:relative;margin-top:6px;font-size:var(--bmx-record-body-size);line-height:1.65;overflow-wrap:anywhere;color:color-mix(in srgb,var(--bmx-ink) 78%,transparent)}
 .bmx-window .bmx-mood-toggle{position:relative;display:block;width:100%;margin:0;padding:0;min-width:0;min-height:0;border:0;border-radius:6px;background:transparent;text-align:left;box-shadow:none;font:inherit;color:inherit}
 .bmx-window button.bmx-mood-toggle{padding-right:30px}
 .bmx-window .bmx-mood-toggle:hover:not(:disabled){background:transparent;border-color:transparent}
-.bmx-window .bmx-page .bmx-record-title{flex:1;min-width:0;margin:0;font-size:17px;font-weight:700;line-height:1.45;color:var(--bmx-ink)}
-.bmx-window .bmx-hearing-page .bmx-record-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bmx-task-status{flex:none;padding-top:3px;font-size:11px;line-height:1.55;color:var(--bmx-muted);white-space:nowrap}
+.bmx-window .bmx-page .bmx-record-title{flex:1;min-width:0;margin:0;font-size:var(--qqj-font-heading);font-weight:700;line-height:1.45;color:var(--bmx-ink)}
 .bmx-mood-toggle .bmx-chevron{position:absolute;right:3px;bottom:7px;margin:0;transform:rotate(45deg)}
 .bmx-mood-toggle.is-open .bmx-chevron{transform:rotate(-135deg)}
-.bmx-window .bmx-page .bmx-hearing-body{margin-top:6px;font-size:13px;line-height:1.65;color:color-mix(in srgb,var(--bmx-ink) 78%,transparent)}
-.bmx-window .bmx-page .bmx-hearing-body{margin-top:4px;line-height:1.7;white-space:pre-wrap}
 .bmx-window .bmx-page .bmx-mood-overview{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .bmx-mood-toggle.is-open .bmx-mood-overview{display:block;overflow:visible}
 .bmx-mood-measure-box{position:absolute;inset:0;overflow:hidden;visibility:hidden;pointer-events:none}
 .bmx-mood-measure{display:block}
-.bmx-hearing-page .bmx-participants,.bmx-taste-page .bmx-participants{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:10px}
-.bmx-window :is(.bmx-hearing-page,.bmx-taste-page) .bmx-participant{display:flex;align-items:center;gap:6px;padding:0;min-width:0;min-height:28px;max-width:100%;border:0;background:transparent;text-align:left;font-size:12px;line-height:1.55}
-:is(.bmx-hearing-page,.bmx-taste-page) .bmx-participant>span{min-width:0;overflow-wrap:anywhere;white-space:normal;color:color-mix(in srgb,var(--bmx-ink) 84%,transparent)}
+.bmx-taste-page .bmx-participants{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:10px}
+.bmx-window .bmx-taste-page .bmx-participant{display:flex;align-items:center;gap:6px;padding:0;min-width:0;min-height:28px;max-width:100%;border:0;background:transparent;text-align:left;font-size:calc(12px * var(--qqj-ui-fixed-scale, 1));line-height:1.55}
+.bmx-taste-page .bmx-participant>span{min-width:0;overflow-wrap:anywhere;white-space:normal;color:color-mix(in srgb,var(--bmx-ink) 84%,transparent)}
 .bmx-mood-entry{padding:15px 0 17px;border-bottom:1px solid color-mix(in srgb,var(--bmx-ink) 12%,transparent)}
+.bmx-taste-page .bmx-page-health + .bmx-mood-entry{padding-top:0}
 .bmx-mood-entry:last-child{border-bottom:0}
-.bmx-taste-page .bmx-plasma-landscape{width:100%;height:32px;margin:6px 0 0}
+.bmx-taste-page .bmx-mood-title {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 32px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--bmx-raised);
+}
+.bmx-mood-title > .bmx-plasma-landscape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  object-fit: cover;
+  background: transparent;
+  pointer-events: none;
+}
+.bmx-mood-title-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px 10px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  color: #1f2b38;
+}
+.bmx-mood-title-text::before {
+  content: "";
+  position: absolute;
+  inset: 0 -20px 0 0;
+  z-index: -1;
+  background: linear-gradient(to right, rgb(250 250 249 / .62) calc(100% - 20px), rgb(250 250 249 / 0));
+  pointer-events: none;
+}
 .bmx-taste-page .bmx-participants{margin-top:8px}
-@media(max-width:340px){.bmx-window .bmx-page .bmx-record-title{font-size:15px}}
+.bmx-mood-heading{display:flex;align-items:center;gap:var(--qqj-space-small)}
+.bmx-mood-heading .bmx-mood-title{flex:1;min-width:0}
+.bmx-window .bmx-mood-edit-toggle{
+  display:grid;place-items:center;flex:none;width:24px;min-width:24px;min-height:28px;
+  padding:0;border:0;border-radius:var(--qqj-button-radius);background:transparent;color:var(--bmx-muted);
+  font-size:18px;line-height:1;-webkit-tap-highlight-color:transparent;
+}
+.bmx-window .bmx-mood-edit-toggle:hover:not(:disabled),.bmx-window .bmx-mood-edit-toggle[aria-expanded=true]{
+  background:var(--bmx-control-fill);
+}
+.bmx-circle-menu{
+  position:absolute;z-index:5;display:grid;gap:1px;width:max-content;max-width:calc(100% - 8px);
+  max-height:calc(100% - 8px);overflow:auto;overscroll-behavior:contain;
+  padding:var(--qqj-space-small);border:1px solid var(--bmx-api-line);border-radius:var(--qqj-button-radius);
+  background:var(--bmx-api-panel);box-shadow:0 10px 24px rgb(18 28 33 / .14);
+}
+.bmx-window .bmx-circle-menu button{
+  width:100%;min-width:0;min-height:0;margin:0;padding:var(--qqj-button-padding);
+  border:1px solid transparent;border-radius:var(--qqj-button-radius);background:transparent;color:var(--bmx-api-ink);
+  font-size:var(--qqj-font-body);font-weight:500;line-height:var(--qqj-button-line);text-align:start;
+}
+.bmx-window .bmx-circle-menu button:hover:not(:disabled){
+  border-color:transparent;background:color-mix(in srgb,var(--bmx-api-ink) 7%,transparent);
+}
+.bmx-window .bmx-circle-menu button:focus-visible{outline-offset:-2px}
+.bmx-window .bmx-circle-menu .bmx-circle-delete{color:var(--bmx-api-crimson)}
+.bmx-circle-member-field{display:grid;gap:var(--qqj-space-group);min-width:0;margin:0;padding:0;border:0}
+.bmx-circle-member-field legend{margin-bottom:var(--qqj-space-small);padding:0;color:var(--bmx-api-soft)}
+.bmx-circle-member-options{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px var(--qqj-space-group);
+  max-height:min(180px,30dvh);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+}
+.bmx-circle-member-options label{
+  display:flex;align-items:center;gap:var(--qqj-space-group);min-height:28px;
+  color:var(--bmx-api-ink);overflow-wrap:anywhere;cursor:pointer;
+}
+.bmx-circle-member-options input{flex:none;width:calc(16px * var(--qqj-ui-scale,.85));height:calc(16px * var(--qqj-ui-scale,.85));accent-color:var(--bmx-api-knot)}
+.bmx-circle-member-options p,.bmx-circle-delete-copy{margin:0}
+.bmx-api-dialog-overlay .bmx-circle-edit-error{margin-top:var(--qqj-space-group)}
+
+.bmx-hearing-task {
+  --bmx-hearing-indent: 20px;
+  padding: 7px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--bmx-ink) 16%, transparent);
+}
+.bmx-hearing-task:first-of-type { padding-top: 0; }
+.bmx-hearing-task:last-child { border-bottom: 0; }
+.bmx-window .bmx-hearing-echoes-toggle {
+  display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;
+  width:100%;min-height:40px;margin:11px 0 6px;padding:0;border:0;background:transparent;
+  font-size:var(--bmx-record-body-size);font-weight:600;letter-spacing:.12em;color:var(--bmx-muted);
+  -webkit-tap-highlight-color:transparent;
+}
+.bmx-window .bmx-hearing-echoes-toggle:hover:not(:disabled),.bmx-hearing-echoes-toggle[aria-expanded=true]{background:transparent;color:var(--bmx-ink)}
+.bmx-window .bmx-hearing-echoes-toggle:focus-visible{outline:none}
+.bmx-hearing-echoes-toggle:focus-visible .bmx-hearing-echoes-label{text-decoration:underline;text-underline-offset:3px}
+.bmx-hearing-echoes-rule{display:flex;align-items:center;gap:3px;opacity:.7}
+.bmx-hearing-echoes-rule.is-end{flex-direction:row-reverse}
+.bmx-hearing-echoes-rule::before{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,currentColor)}
+.bmx-hearing-echoes-rule.is-end::before{background:linear-gradient(270deg,transparent,currentColor)}
+.bmx-hearing-echoes-rule i{flex:0 0 1.5px;border-radius:2px;background:currentColor}
+.bmx-hearing-step {
+  --bmx-hearing-node-y: .825em;
+  --bmx-hearing-step-ink: var(--bmx-ink);
+  position: relative;
+  padding-inline-start: var(--bmx-hearing-indent);
+  font-size: var(--bmx-record-body-size);
+  line-height: 1.65;
+}
+.bmx-hearing-step::after,
+.bmx-hearing-timeline.is-expanded .bmx-hearing-step::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 4px;
+  pointer-events: none;
+}
+.bmx-hearing-step::after {
+  top: var(--bmx-hearing-node-y);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: var(--bmx-hearing-step-ink);
+}
+.bmx-hearing-timeline.is-expanded .bmx-hearing-step::before {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  translate: -50% 0;
+  background: color-mix(in srgb, var(--bmx-faint) 60%, transparent);
+}
+.bmx-hearing-timeline.is-expanded > .bmx-hearing-step::before { top: var(--bmx-hearing-node-y); }
+.bmx-hearing-history .bmx-hearing-step:last-child::before { bottom: auto; height: var(--bmx-hearing-node-y); }
+.bmx-hearing-timeline.is-expanded > .bmx-hearing-step,
+.bmx-hearing-history .bmx-hearing-step:not(:last-child) { padding-bottom: calc(7px * var(--qqj-ui-fixed-scale, 1)); }
+.bmx-hearing-history { list-style: none; margin: 0; padding: 0; }
+.bmx-hearing-previous,
+.bmx-hearing-task[data-status=completed] > .bmx-hearing-timeline > .bmx-hearing-step {
+  --bmx-hearing-step-ink: var(--bmx-hearing-past, var(--bmx-ink));
+}
+.bmx-hearing-previous { color: var(--bmx-hearing-step-ink); font-size: calc(11.3px * var(--qqj-ui-fixed-scale, 1)); }
+.bmx-hearing-previous::after { width: 4px; height: 4px; }
+.bmx-hearing-previous::after,
+.bmx-hearing-task[data-status=completed] > .bmx-hearing-timeline > .bmx-hearing-step::after { opacity: .55; }
+.bmx-window .bmx-hearing-body { min-width: 0; color: var(--bmx-hearing-step-ink, var(--bmx-ink)); }
+.bmx-hearing-body, .bmx-hearing-previous { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.bmx-window .bmx-hearing-progress-toggle {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: start;
+}
+.bmx-window .bmx-hearing-progress-toggle:hover:not(:disabled) { background: transparent; }
+.bmx-hearing-progress-toggle .bmx-chevron { margin-top: .55em; transform: rotate(45deg); }
+.bmx-hearing-progress-toggle[aria-expanded=true] .bmx-chevron { transform: rotate(-135deg); }
+
+.bmx-hearing-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 3px;
+  padding-inline-start: var(--bmx-hearing-indent);
+}
+.bmx-hearing-footer .bmx-task-status {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: calc(12px * var(--qqj-ui-fixed-scale, 1));
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.bmx-hearing-footer .bmx-task-status[data-status=planned] { color: #214976; background: #deebfa; }
+.bmx-hearing-footer .bmx-task-status[data-status=active] { color: #185951; background: #d7f2ea; }
+.bmx-hearing-footer .bmx-task-status[data-status=waiting] { color: #753f1f; background: #f7e6d4; }
+.bmx-hearing-footer .bmx-task-status[data-status=completed] { color: #4d637a; background: #edf2f6; }
+:host([data-bmx-theme="night"]) .bmx-hearing-footer .bmx-task-status[data-status=planned] { color: #c1ddff; background: #253b56; }
+:host([data-bmx-theme="night"]) .bmx-hearing-footer .bmx-task-status[data-status=active] { color: #b2eadc; background: #22443f; }
+:host([data-bmx-theme="night"]) .bmx-hearing-footer .bmx-task-status[data-status=waiting] { color: #ffd5aa; background: #523c32; }
+:host([data-bmx-theme="night"]) .bmx-hearing-footer .bmx-task-status[data-status=completed] { color: #b5c4d3; background: #3b4e61; }
+.bmx-hearing-members { display: flex; gap: 6px; min-width: 0; margin-inline-start: auto; }
+.bmx-window :is(.bmx-hearing-member,.bmx-hearing-member-group) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.bmx-window .bmx-hearing-member { flex-direction: row; gap: 4px; text-align: start; }
+.bmx-hearing-member-name {
+  min-width: 0;
+  max-width: 3em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bmx-muted);
+  font-size: calc(12px * var(--qqj-ui-fixed-scale, 1));
+  line-height: 1.25;
+}
+.bmx-hearing-member-name.is-long { font-size: calc(10px * var(--qqj-ui-fixed-scale, 1)); }
+.bmx-window .bmx-hearing-member-group { flex: none; gap: 9px; min-width: 44px; min-height: 32px; padding: 0 4px; margin-inline-start: auto; }
+.bmx-hearing-avatar-stack { display: flex; }
+.bmx-hearing-stacked-avatar { border: 1px solid var(--bmx-api-panel, var(--bmx-base)); }
+.bmx-hearing-stacked-avatar + .bmx-hearing-stacked-avatar { margin-inline-start: -6px; }
+.bmx-hearing-ellipsis {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  color: var(--bmx-muted);
+  background: currentColor;
+  box-shadow: -5px 0 currentColor, 5px 0 currentColor;
+  margin-inline: 5px;
+}
+
+.bmx-hearing-participants-popup {
+  position: absolute;
+  z-index: 2;
+  right: var(--bmx-hearing-popup-right);
+  width: min(212px, calc(100% - var(--bmx-hearing-popup-right) - 8px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--bmx-border);
+  border-radius: 10px;
+  background: var(--bmx-api-panel, var(--bmx-base));
+  color: var(--bmx-ink);
+  box-shadow: 0 5px 16px rgb(8 21 36 / .26);
+}
+.bmx-content-stage:has(> .bmx-hearing-participants-popup.is-docked) { --bmx-hearing-dock: min(216px, 48%); }
+.bmx-content-stage:has(> .bmx-hearing-participants-popup.is-docked) > .bmx-shell-content { height: calc(100% - var(--bmx-hearing-dock)); }
+.bmx-hearing-participants-popup.is-docked { bottom: 4px; max-height: calc(var(--bmx-hearing-dock) - 8px); }
+.bmx-hearing-participants-popup > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  padding: 0 4px 0 10px;
+  border-bottom: 1px solid var(--bmx-border);
+  font-size: calc(13px * var(--qqj-ui-fixed-scale, 1));
+}
+.bmx-window .bmx-hearing-close-people { width: 36px; height: 36px; }
+.bmx-hearing-close-people i { position: relative; width: 13px; height: 13px; }
+.bmx-hearing-close-people i::before,
+.bmx-hearing-close-people i::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+.bmx-hearing-close-people i::after { transform: rotate(-45deg); }
+.bmx-hearing-people-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 2px 4px 4px;
+}
+.bmx-window .bmx-hearing-person-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  text-align: start;
+  overflow-wrap: anywhere;
+}

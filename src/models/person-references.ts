@@ -1,14 +1,27 @@
 import { extractJson } from '../simulation/json';
+import { constructionResponse, publicMessageOutput } from '../simulation/construction-response';
 
 type PersonMap = Map<string, string>;
-const personReferenceFields = new Set(['foundationPendingPersonIds','qqjPersonId','fromPersonId','toPersonId','personId', 'person_id', 'person', 'personIds', 'participantIds', 'selectedPersonIds', 'people', 'continuingForPersonIds', 'interactionPersonIds', 'interaction_person_ids', 'onstagePersonIds', 'offstagePersonIds', 'previousOnstagePersonIds', 'cameraPersonIds', 'assertedPersonIds']);
+const personReferenceFields = new Set(['foundationPendingPersonIds','foundationPersonalityPendingPersonIds','qqjPersonId','fromPersonId','toPersonId','personId', 'person_id', 'person', 'personIds', 'participantIds', 'selectedPersonIds', 'people', 'continuingForPersonIds', 'interactionPersonIds', 'interaction_person_ids', 'onstagePersonIds', 'offstagePersonIds', 'previousOnstagePersonIds', 'cameraPersonIds', 'assertedPersonIds']);
 const personTables = new Set(['people', 'knownPeople', 'selectedPeople']);
 
 function mapReference(value: unknown, ids: PersonMap): unknown {
   if (typeof value === 'string') return ids.get(value) ?? value;
   if (Array.isArray(value)) {
     let changed = false;
-    const result = value.map(item => { const next = mapReference(item, ids); changed ||= next !== item; return next; });
+    const originals = new Map<string,string>();
+    const result: unknown[] = [];
+    for (const item of value) {
+      const next = mapReference(item, ids);
+      changed ||= next !== item;
+      if (typeof item === 'string' && typeof next === 'string') {
+        const previous = originals.get(next);
+        // Distinct references can become one person after an accepted identity binding.
+        if (previous !== undefined && previous !== item) continue;
+        originals.set(next,item);
+      }
+      result.push(next);
+    }
     return changed ? result : value;
   }
   if (value && typeof value === 'object') {
@@ -146,6 +159,8 @@ function constructionPersonKeys(value: unknown, codes: PersonMap): unknown {
 export function decodeModelResponse(value: unknown, formalToCode: PersonMap, task: string): unknown {
   const codeToFormal = new Map([...formalToCode].map(([formal, code]) => [code, formal]));
   let parsed = value;
+  if(task==='world-construction')return mapTree(constructionPersonKeys(constructionResponse(value),codeToFormal),codeToFormal);
+  if(task==='smell')return mapTree(publicMessageOutput(value),codeToFormal);
   if (typeof value === 'string') {
     try { parsed = extractJson(value); }
     catch {

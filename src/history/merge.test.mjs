@@ -122,7 +122,7 @@ test('local aliases colliding with official IDs remain ambiguous while independe
   assert.equal(result.state.events[0], baseEvent);
   assert.equal(result.state.activities.length, 3);
   assert.equal(result.state.events.length, 3);
-  assert.equal(result.state.events[2].title, '独立结果');
+  assert.equal(result.state.events[2].description, '独立结果');
   assert.deepEqual(result.state.knowledge.map(item => item.eventId), [result.state.events[2].id]);
   assert.ok(result.skipped > 0);
   assert.equal(result.partial, true);

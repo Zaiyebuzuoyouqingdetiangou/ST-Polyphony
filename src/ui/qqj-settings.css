@@ -1,20 +1,132 @@
-/* QQJ settings rules, scoped to the approved blue shell. */
-.bmx-settings-page .settings-page{display:grid;gap:13px}.bmx-settings-page .settings-page>h2{margin:0 2px 1px;font:700 20px/1.2 var(--qqj-custom-font,inherit),-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:.04em}.bmx-settings-page .settings-block{display:grid;gap:11px;padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.bmx-settings-page .settings-block h3{margin:0;font:700 13.5px var(--qqj-custom-font,inherit),-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:.03em}.bmx-settings-page .settings-field{display:grid;gap:5px;color:var(--soft);font-size:11px}.bmx-settings-page .settings-field>span{font-weight:600;letter-spacing:.02em;color:var(--soft)}.bmx-settings-page .settings-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.bmx-settings-page .settings-subhead{margin:4px 0 -3px;padding-top:10px;border-top:1px dashed var(--line);color:var(--faint);font-size:10px;font-weight:700;letter-spacing:.08em}.bmx-settings-page .settings-input,.bmx-settings-page .settings-field input,.bmx-settings-page .settings-field select,.bmx-settings-page .settings-field textarea{width:100%;min-width:0;padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);transition:border-color .15s ease,box-shadow .15s ease}.bmx-settings-page .settings-field input:focus,.bmx-settings-page .settings-field select:focus,.bmx-settings-page .settings-field textarea:focus,.bmx-settings-page .settings-input:focus{outline:none;border-color:var(--knot);box-shadow:0 0 0 2px color-mix(in srgb,var(--knot) 18%,transparent)}.bmx-settings-page .settings-field textarea{min-height:62px;line-height:1.5;resize:vertical}.bmx-settings-page .setting-switch{display:flex;align-items:center;gap:9px;padding:2px 0;font-size:12px;color:var(--ink)}.bmx-settings-page .setting-switch input{width:15px;height:15px;flex:0 0 auto;accent-color:var(--knot)}.bmx-settings-page .settings-scale{display:flex;align-items:center;gap:9px}.bmx-settings-page .settings-scale input{flex:1}.bmx-settings-page .settings-scale output{flex:0 0 auto;min-width:3.2em;color:var(--soft);font-size:11px;text-align:right}.bmx-settings-page .settings-hint{margin:-1px 0 0;color:var(--faint);font-size:10.5px;line-height:1.6}.bmx-settings-page .settings-result{margin:1px 0 0;color:var(--soft);font-size:10.5px}.bmx-settings-page .settings-result.success{color:var(--success)}.bmx-settings-page .settings-result.error{color:var(--crimson)}.bmx-settings-page .settings-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}.bmx-settings-page .primary-action,.bmx-settings-page .secondary-action,.bmx-settings-page .danger-action{padding:7px 10px;border-radius:7px;cursor:pointer}.bmx-settings-page .primary-action{border:1px solid var(--crimson);background:var(--crimson);color:var(--on-primary,#fff)}.bmx-settings-page .secondary-action{border:1px solid var(--line);background:var(--panel);color:var(--ink)}.bmx-settings-page .danger-action{border:1px solid color-mix(in srgb,var(--crimson) 45%,var(--line));background:color-mix(in srgb,var(--crimson) 7%,var(--panel));color:var(--crimson)}.bmx-settings-page button:disabled{border-color:var(--line);background:var(--line);color:var(--soft);cursor:not-allowed}.bmx-settings-page .source-permission-settings>.settings-sub-summary h4{font-size:13px;font-weight:600}.bmx-settings-page .source-permission-list{font-size:calc(13px * var(--qqj-ui-scale,1));display:grid;gap:0;max-height:min(40vh,320px);overflow-y:auto;touch-action:pan-y}.bmx-settings-page .source-toggle-row{display:flex;align-items:flex-start;gap:7px;min-width:0;padding:3px 2px;cursor:pointer}.bmx-settings-page .source-toggle-row span{display:grid;flex:1;min-width:0;line-height:1.45;overflow-wrap:anywhere}.bmx-settings-page .source-toggle-row input{flex:0 0 auto;margin:3px 0 0;accent-color:var(--crimson)}.bmx-settings-page .settings-page{gap:10px}.bmx-settings-page .master-switch{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--line);border-left:3px solid var(--crimson);border-radius:10px;background:var(--panel)}.bmx-settings-page .master-switch .setting-switch{font-weight:600}.bmx-settings-page .master-switch-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}.bmx-settings-page .qqj-update-controls{display:flex;align-items:center;gap:4px;flex:0 0 auto}.bmx-settings-page .qqj-update-status{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:26px;padding:4px 7px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);font-size:10.5px;line-height:1.2;white-space:nowrap;cursor:pointer}.bmx-settings-page .qqj-update-status[data-state="available"]::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--success);flex:0 0 auto}.bmx-settings-page .qqj-update-status:hover{border-color:var(--knot)}.bmx-settings-page .qqj-update-status:focus-visible{outline:2px solid var(--knot);outline-offset:2px}.bmx-settings-page .qqj-update-status:disabled{opacity:.6;cursor:default}.bmx-settings-page .master-switch .settings-result:empty{display:none}.bmx-settings-page .settings-group{padding:0;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.bmx-settings-page .settings-group>.settings-group-summary{display:flex;align-items:center;gap:8px;padding:11px 13px;cursor:pointer;list-style:none}.bmx-settings-page .settings-group-summary::-webkit-details-marker{display:none}.bmx-settings-page .settings-group-summary::before{content:"›";flex:0 0 auto;color:var(--soft);font-size:17px;line-height:1;transition:transform .15s ease}.bmx-settings-page .settings-group[open]>.settings-group-summary::before{transform:rotate(90deg)}.bmx-settings-page .settings-group-summary h3{min-width:0;margin:0;font:700 15px var(--qqj-custom-font,inherit),-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:.02em}.bmx-settings-page .settings-group-body{display:grid;gap:0;padding:0 12px 8px 26px}.bmx-settings-page .settings-sub{padding:0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent}.bmx-settings-page .settings-sub>.settings-sub-summary{display:flex;align-items:center;gap:7px;min-height:36px;padding:8px 2px;cursor:pointer;list-style:none}.bmx-settings-page .settings-sub-summary::-webkit-details-marker{display:none}.bmx-settings-page .settings-sub-summary::before{content:"›";flex:0 0 auto;color:var(--faint);font-size:14px;line-height:1;transition:transform .15s ease}.bmx-settings-page .settings-sub[open]>.settings-sub-summary::before{transform:rotate(90deg)}.bmx-settings-page .settings-sub-summary h4{min-width:0;margin:0;font:600 13px/calc(20px * var(--qqj-ui-fixed-scale,1)) var(--qqj-custom-font,inherit),-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink)}.bmx-settings-page .settings-sub-body{display:grid;gap:9px;padding:2px 2px 12px 14px}.bmx-settings-page .settings-sub-body.settings-drawer-list{gap:0;padding:0 2px}.bmx-settings-page .settings-sub-body>.settings-sub{margin-left:10px}.bmx-settings-page .settings-group-body>.settings-hint:empty,.bmx-settings-page .settings-group-body>.settings-result:empty{display:none}.bmx-settings-page .source-exclude-count{margin:0 0 2px;color:var(--soft);font-size:10.5px}
+/* cache359 uses appearance-scaled fields and fixed 85% button padding. */
+.bmx-settings-page,.bmx-api-dialog-overlay,#qqj-dialog-host,.bmx-mood-heading,.bmx-circle-menu {
+  --qqj-font-body: calc(13px * var(--qqj-ui-scale, .85));
+  --qqj-font-caption: calc(12px * var(--qqj-ui-scale, .85));
+  --qqj-font-subheading: calc(15px * var(--qqj-ui-scale, .85));
+  --qqj-space-small: calc(4px * var(--qqj-ui-scale, .85));
+  --qqj-space-group: calc(8px * var(--qqj-ui-scale, .85));
+  --qqj-space-section: calc(12px * var(--qqj-ui-scale, .85));
+  --qqj-control-height: calc(36px * var(--qqj-ui-scale, .85));
+  --qqj-control-line: calc(20px * var(--qqj-ui-scale, .85));
+  --qqj-control-pad-y: calc(8px * var(--qqj-ui-scale, .85) - 1px);
+  --qqj-control-pad-x: calc(10px * var(--qqj-ui-scale, .85));
+  --qqj-radius-control: calc(8px * var(--qqj-ui-scale, .85));
+  --qqj-radius-card: calc(10px * var(--qqj-ui-scale, .85));
+  --qqj-button-padding: calc(8px * .85 - 1px) calc(10px * .85);
+  --qqj-button-line: calc(var(--qqj-font-body) * 20 / 13);
+  --qqj-button-radius: calc(8px * .85);
+}
+.bmx-settings-page .settings-page>h2{margin:0 2px 1px;font:700 var(--qqj-font-title)/1.2 var(--qqj-custom-font,inherit),-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:.04em}
+.bmx-settings-page .settings-block{display:grid;gap:calc(11px * var(--qqj-ui-scale, .85));padding:calc(13px * var(--qqj-ui-scale, .85)) calc(14px * var(--qqj-ui-scale, .85));border:1px solid var(--line);border-radius:var(--qqj-radius-card);background:var(--panel)}
+.bmx-settings-page .settings-block h3{margin:0;font:700 calc(13.5px * var(--qqj-ui-fixed-scale, 1)) var(--qqj-custom-font,inherit),-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:.03em}
+.bmx-settings-page .settings-field{display:grid;min-width:0;gap:var(--qqj-space-small);color:var(--soft);font-size:var(--qqj-font-body);overflow-wrap:anywhere}
+.bmx-settings-page .settings-field>span{font-weight:600;letter-spacing:.02em;color:var(--soft)}
+.bmx-settings-page .settings-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.bmx-settings-page .settings-subhead{margin:4px 0 -3px;padding-top:10px;border-top:1px dashed var(--line);color:var(--faint);font-size:calc(10px * var(--qqj-ui-fixed-scale, 1));font-weight:700;letter-spacing:.08em}
+.bmx-settings-page .settings-input:not([type=range]),.bmx-settings-page .settings-field input:not([type=checkbox]):not([type=radio]):not([type=range]),.bmx-settings-page .settings-field select,.bmx-settings-page .settings-field textarea{width:100%;min-width:0;min-height:var(--qqj-control-height);padding:var(--qqj-control-pad-y) var(--qqj-control-pad-x);border:1px solid var(--line);border-radius:var(--qqj-radius-control);background:var(--paper);color:var(--ink);font-size:var(--qqj-font-body);line-height:var(--qqj-control-line);font-weight:400;transition:border-color .15s ease,box-shadow .15s ease}
+.bmx-settings-page .settings-field input:focus,.bmx-settings-page .settings-field select:focus,.bmx-settings-page .settings-field textarea:focus,.bmx-settings-page .settings-input:focus{outline:none;border-color:var(--knot);box-shadow:0 0 0 2px color-mix(in srgb,var(--knot) 18%,transparent)}
+.bmx-settings-page .settings-field textarea{min-height:62px;line-height:1.5;resize:vertical}
+.bmx-settings-page .setting-switch{display:flex;align-items:center;min-width:0;min-height:0;gap:calc(9px * var(--qqj-ui-scale, .85));padding:calc(2px * var(--qqj-ui-scale, .85)) 0;font-size:var(--qqj-font-body);color:var(--ink);overflow-wrap:anywhere}
+.bmx-settings-page .setting-switch input{width:calc(16px * var(--qqj-ui-scale, .85));height:calc(16px * var(--qqj-ui-scale, .85));flex:0 0 auto;accent-color:var(--knot)}
+.bmx-settings-page .settings-scale{display:flex;min-width:0;align-items:center;gap:calc(9px * var(--qqj-ui-scale, .85))}
+.bmx-settings-page .settings-scale input{flex:1;min-width:0}
+.bmx-settings-page .settings-scale output{flex:0 0 auto;min-width:3.2em;color:var(--soft);font-size:var(--qqj-font-body);text-align:right}
+.bmx-settings-page .settings-hint{margin:-1px 0 0;color:var(--faint);font-size:calc(10.5px * var(--qqj-ui-fixed-scale, 1));line-height:1.6}
+.bmx-settings-page .settings-result{margin:1px 0 0;color:var(--soft);font-size:calc(10.5px * var(--qqj-ui-fixed-scale, 1))}
+.bmx-settings-page .settings-result.success{color:var(--success)}
+.bmx-settings-page .settings-result.error{color:var(--crimson)}
+.bmx-settings-page .settings-actions{display:flex;flex-wrap:wrap;gap:var(--qqj-space-group);margin-top:calc(2px * var(--qqj-ui-scale, .85))}
+.bmx-settings-page .primary-action,.bmx-settings-page .secondary-action,.bmx-settings-page .danger-action,.bmx-settings-page .bmx-development-controls button{
+  display:inline-flex;align-items:center;justify-content:center;justify-self:start;flex:0 1 auto;width:auto;
+  min-width:0;min-height:0;max-width:100%;padding:var(--qqj-button-padding);border-radius:var(--qqj-button-radius);
+  font-size:var(--qqj-font-body);line-height:var(--qqj-button-line);font-weight:500;text-align:center;
+  white-space:normal;overflow-wrap:anywhere;cursor:pointer;
+}
+.bmx-settings-page .primary-action{border:1px solid var(--crimson);background:var(--crimson);color:var(--on-primary,#fff)}
+.bmx-settings-page .secondary-action{border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.bmx-settings-page .danger-action{border:1px solid color-mix(in srgb,var(--crimson) 45%,var(--line));background:color-mix(in srgb,var(--crimson) 7%,var(--panel));color:var(--crimson)}
+.bmx-settings-page button:disabled{border-color:var(--line);background:var(--line);color:var(--soft);cursor:not-allowed}
+.bmx-settings-page .source-permission-settings>.settings-sub-summary h4{font-size:var(--qqj-font-subheading);font-weight:600}
+.bmx-settings-page .source-permission-list{font-size:calc(13px * var(--qqj-ui-scale,1));display:grid;gap:0;max-height:min(40vh,320px);overflow-y:auto;touch-action:pan-y}
+.bmx-settings-page .source-toggle-row{display:flex;align-items:flex-start;gap:calc(7px * var(--qqj-ui-scale, .85));min-width:0;padding:calc(3px * var(--qqj-ui-scale, .85)) calc(2px * var(--qqj-ui-scale, .85));cursor:pointer}
+.bmx-settings-page .source-toggle-row span{display:grid;flex:1;min-width:0;line-height:1.45;overflow-wrap:anywhere}
+.bmx-settings-page .source-toggle-row input{flex:0 0 auto;margin:calc(3px * var(--qqj-ui-scale, .85)) 0 0;accent-color:var(--crimson)}
+.bmx-settings-page .master-switch{display:grid;gap:var(--qqj-space-small);padding:calc(10px * var(--qqj-ui-scale, .85)) var(--qqj-space-section);border:1px solid var(--line);border-left:3px solid var(--crimson);border-radius:var(--qqj-radius-card);background:var(--panel)}
+.bmx-settings-page .master-switch .setting-switch{font-size:calc(18px * var(--qqj-ui-scale,1));font-weight:600}
+.bmx-settings-page .master-switch-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--qqj-space-group)}
+.bmx-settings-page .qqj-update-controls{display:flex;align-items:center;gap:var(--qqj-space-small);flex:0 1 auto;min-width:0;max-width:100%}
+.bmx-settings-page .qqj-update-status{display:inline-flex;align-items:center;justify-content:center;gap:calc(5px * var(--qqj-ui-scale, .85));min-width:0;min-height:0;max-width:100%;padding:calc(5px * .85 - 1px) calc(8px * .85);border:1px solid var(--line);border-radius:calc(8px * 28 / 36 * .85);background:var(--paper);color:var(--ink);font-size:var(--qqj-font-caption);line-height:1.5;white-space:normal;overflow-wrap:anywhere;cursor:pointer}
+.bmx-settings-page .qqj-update-status[data-state="available"]::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--success);flex:0 0 auto}
+.bmx-settings-page .qqj-update-status:hover{border-color:var(--knot)}
+.bmx-settings-page .qqj-update-status:focus-visible{outline:2px solid var(--knot);outline-offset:2px}
+.bmx-settings-page .qqj-update-status:disabled{opacity:.6;cursor:default}
+.bmx-settings-page .master-switch .settings-result:empty{display:none}
+.bmx-settings-page .settings-group{padding:0;overflow:hidden;border:1px solid var(--line);border-radius:var(--qqj-radius-card);background:var(--panel)}
+.bmx-settings-page .settings-group>.settings-group-summary{display:flex;align-items:center;gap:var(--qqj-space-group);padding:calc(11px * var(--qqj-ui-scale, .85)) calc(13px * var(--qqj-ui-scale, .85));cursor:pointer;list-style:none}
+.bmx-settings-page .settings-group-summary::-webkit-details-marker{display:none}
+.bmx-settings-page .settings-group-summary::before{content:"›";flex:0 0 auto;color:var(--soft);font-size:calc(17px * var(--qqj-ui-fixed-scale, 1));line-height:1;transition:transform .15s ease}
+.bmx-settings-page .settings-group[open]>.settings-group-summary::before{transform:rotate(90deg)}
+.bmx-settings-page .settings-group-summary h3{min-width:0;margin:0;font:700 var(--qqj-font-heading)/1.4 var(--qqj-custom-font,inherit),-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:.02em;overflow-wrap:anywhere}
+.bmx-settings-page .settings-group-body{display:grid;gap:0;min-width:0;padding:0 calc(12px * var(--qqj-ui-scale, .85)) calc(8px * var(--qqj-ui-scale, .85)) calc(26px * var(--qqj-ui-scale, .85))}
+.bmx-settings-page .settings-sub{padding:0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent}
+.bmx-settings-page .settings-sub>.settings-sub-summary{display:flex;align-items:center;gap:calc(7px * var(--qqj-ui-scale, .85));min-height:var(--qqj-control-height);padding:calc(8px * var(--qqj-ui-scale, .85)) calc(2px * var(--qqj-ui-scale, .85));cursor:pointer;list-style:none}
+.bmx-settings-page .settings-sub-summary::-webkit-details-marker{display:none}
+.bmx-settings-page .settings-sub-summary::before{content:"›";flex:0 0 auto;color:var(--faint);font-size:calc(14px * var(--qqj-ui-fixed-scale, 1));line-height:1;transition:transform .15s ease}
+.bmx-settings-page .settings-sub[open]>.settings-sub-summary::before{transform:rotate(90deg)}
+.bmx-settings-page .settings-sub-summary h4{min-width:0;margin:0;font:600 var(--qqj-font-subheading)/var(--qqj-control-line) var(--qqj-custom-font,inherit),-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);overflow-wrap:anywhere}
+.bmx-settings-page .settings-sub-body{display:grid;gap:var(--qqj-space-group);min-width:0;padding:calc(2px * var(--qqj-ui-scale, .85)) calc(2px * var(--qqj-ui-scale, .85)) var(--qqj-space-section) calc(14px * var(--qqj-ui-scale, .85))}
+.bmx-settings-page .settings-sub-body.settings-drawer-list{gap:0;padding:0 calc(2px * var(--qqj-ui-scale, .85))}
+.bmx-settings-page .settings-sub-body>.settings-sub{margin-left:calc(10px * var(--qqj-ui-scale, .85))}
+.bmx-settings-page .settings-group-body>.settings-hint:empty,.bmx-settings-page .settings-group-body>.settings-result:empty{display:none}
+.bmx-settings-page .source-exclude-count{margin:0 0 2px;color:var(--soft);font-size:calc(10.5px * var(--qqj-ui-fixed-scale, 1))}
 .bmx-settings-page{--paper:rgb(255 255 255 / .045);--panel:rgb(255 255 255 / .025);--ink:var(--bmx-ink);--soft:var(--bmx-muted);--faint:var(--bmx-faint);--line:var(--bmx-border);--crimson:var(--bmx-selected);--knot:var(--bmx-selected);--on-primary:var(--bmx-on-action);--success:var(--bmx-success)}
 .bmx-settings-page .settings-group-body>div:has(>.settings-sub){display:contents}
-.bmx-settings-page .settings-sub .appearance-settings{margin:0;padding:0}
-.bmx-settings-page .settings-sub .appearance-settings h2{display:none}
-.bmx-settings-page .bmx-content-settings,.bmx-settings-page .bmx-world-settings{padding-top:4px;padding-bottom:12px}
+.bmx-settings-page .bmx-content-settings,.bmx-settings-page .bmx-world-settings{padding-top:var(--qqj-space-small);padding-bottom:var(--qqj-space-section)}
 .bmx-settings-page .bmx-development-controls{margin:0;padding:0;border:0}
-.bmx-settings-page .bmx-development-controls p{font-size:11px}
-.bmx-settings-page .bmx-development-controls button{min-height:34px;padding:6px 10px;font-size:12px}
+.bmx-settings-page .bmx-development-controls > p:not(.bmx-world-hint){margin:0 0 var(--qqj-space-small);font-size:var(--qqj-font-body)}
 .bmx-world-actions{display:flex;flex-wrap:wrap;gap:8px}
-.bmx-settings-page .bmx-world-hint{margin:8px 0 0;color:var(--bmx-muted);font-size:10.5px;line-height:1.6}
-.bmx-settings-page .bmx-development-interval{font-size:12px}.bmx-settings-page .bmx-development-interval input{min-height:34px;width:72px;padding:6px 8px}
-.bmx-hearing-header .bmx-task-status{font-size:10px;line-height:1.3;flex:none;padding:3px 5px;border-radius:6px;background:rgb(255 255 255 / .09);color:var(--bmx-muted)}
-.bmx-hearing-header .bmx-task-status[data-status=active]{color:#c9e9d6;background:rgb(158 213 181 / .12)}
-.bmx-hearing-header .bmx-task-status[data-status=waiting]{color:#f3dfbd;background:rgb(235 205 149 / .12)}
-.bmx-hearing-header .bmx-record-title{flex:1;min-width:0}
+.bmx-settings-page .bmx-world-actions{gap:var(--qqj-space-group)}
+.bmx-settings-page .bmx-world-hint{margin:var(--qqj-space-group) 0 0;color:var(--bmx-muted);font-size:var(--qqj-font-caption);line-height:1.6}
+.bmx-settings-page .bmx-development-interval{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;min-height:34px;
+  color:var(--ink);font-size:var(--qqj-font-body)
+}
+.bmx-settings-page .bmx-development-interval>.settings-num{
+  box-sizing:border-box;flex:0 0 48px;width:48px;min-height:calc(28px * var(--qqj-ui-scale,.85));
+  padding:calc(5px * var(--qqj-ui-scale,.85) - 1px) calc(8px * var(--qqj-ui-scale,.85));
+  font-size:var(--qqj-font-caption);line-height:calc(18px * var(--qqj-ui-scale,.85));font-weight:500;
+  border-radius:calc(8px * 28 / 36 * var(--qqj-ui-scale,.85));text-align:center;appearance:textfield
+}
+.bmx-settings-page .settings-num::-webkit-outer-spin-button,.bmx-settings-page .settings-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.bmx-settings-page .bmx-smell-switch{justify-content:space-between}
+.bmx-settings-page .bmx-smell-switch input{min-height:0;padding:0}
 
 .bmx-settings-page .bmx-world-status{color:var(--bmx-success);overflow-wrap:anywhere}
-.bmx-settings-page .bmx-world-status.attention{color:#ffca91}
+.bmx-settings-page .bmx-world-status.attention{color:var(--bmx-glass-attention,#ffca91)}
+
+/* QQJ appearance field and inline-select tokens at the same scale. */
+.bmx-settings-page .appearance-settings{display:grid;min-width:0;gap:var(--qqj-space-group)}
+.bmx-settings-page .appearance-settings :is(.settings-field,.settings-scale output){font-size:var(--qqj-font-body)}
+.bmx-settings-page .appearance-settings .settings-field{gap:var(--qqj-space-small)}
+.bmx-settings-page .appearance-settings .settings-field>span{font-weight:600}
+.bmx-settings-page .appearance-settings input[type=range]{min-width:0;padding:0;border:0;accent-color:var(--knot)}
+.bmx-settings-page .appearance-settings .bmx-inline-select{display:grid;min-width:0}
+.bmx-settings-page .appearance-settings .bmx-inline-select-trigger{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--qqj-space-group);
+  width:100%;min-width:0;min-height:0;padding:var(--qqj-button-padding);border-radius:var(--qqj-button-radius);
+  font-size:var(--qqj-font-body);line-height:var(--qqj-button-line);text-align:left;
+}
+.bmx-settings-page .appearance-settings .bmx-inline-select-value{white-space:normal;overflow-wrap:anywhere}
+.bmx-settings-page .appearance-settings .bmx-inline-select-options{
+  display:grid;grid-auto-rows:max-content;align-content:start;max-height:220px;margin-top:var(--qqj-space-small);padding:calc(3px * var(--qqj-ui-scale, .85));
+  overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:var(--qqj-radius-control);background:var(--paper);
+}
+.bmx-settings-page .appearance-settings .bmx-inline-select-option{
+  display:block;width:100%;min-width:0;min-height:0;padding:var(--qqj-button-padding);
+  font-size:var(--qqj-font-body);line-height:var(--qqj-button-line);font-weight:400;text-align:left;
+  border-color:transparent;border-radius:calc(6px * .85);background:transparent;overflow-wrap:anywhere;
+}
+.bmx-settings-page .appearance-settings .bmx-inline-select-option.active{
+  border-color:var(--knot);background:color-mix(in srgb,var(--knot) 10%,var(--panel));color:var(--knot);
+}
+:host([data-bmx-theme="day"]) .bmx-settings-page{--paper:var(--bmx-input-bg);--panel:var(--bmx-surface);--bmx-glass-attention:var(--bmx-glass-waiting)}

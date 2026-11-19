@@ -1,0 +1,52 @@
+{
+  "source": "https://raw.githubusercontent.com/iconify/icon-sets/master/json/hugeicons.json",
+  "retrievedAt": "2026-10-24T09:02:11.242649+00:00",
+  "subsetKeys": [
+    "view",
+    "ear",
+    "nose",
+    "tongue",
+    "settings-02",
+    "search-01",
+    "refresh",
+    "more-vertical"
+  ],
+  "subsetSha256": "31064c5bdcf54610bbbac765c54e14b796546e99f1fa24327074c0bcd92eb9b3",
+  "svgBodySha256": {
+    "view": "cd25e5f5fb25d784bd9f572ec3dcec70a2e527080278e56f43bbae740e89c0a9",
+    "ear": "d0c640757d3bfe55d4b1958e1796f6715b6507ffead02d0842d6d2e231fda103",
+    "nose": "948f862e688cfbcf37e8f33b794f7194bd143edf3fa32de1d1c93c844f1d8039",
+    "tongue": "e1cbede45ba95870af389a469af08ae0cd085bbdc1ac683561471dcda6663a1b",
+    "settings-02": "50fcedfc6d30e480fc20ddc5474e77ddcef510f0ff6bcde81531b8c8313bc69c",
+    "search-01": "ea569185f1bf09659481e2aa813c5a6144830e9bdc81df5b58fc42b7e8a39ccc",
+    "refresh": "bd6ba8b36ff4a1cc46daf146fe49e8c5fd181fbbee49de4611a26652df6c6bcf",
+    "more-vertical": "1424022bfbd2d44b6ab4d21789b2659fa276912307931104afad383184ce3ee3"
+  },
+  "officialRepository": "https://github.com/hugeicons/hugeicons",
+  "officialReadme": "https://github.com/hugeicons/hugeicons/blob/main/README.md",
+  "licenseUrl": "https://raw.githubusercontent.com/hugeicons/hugeicons/main/LICENSE.md",
+  "licenseSha256": "1658d8213209df7b9b86dfc05d724ede48d00dbc27abc15976ec7adec9601cde",
+  "licenseMeaning": "Official README licenses free Stroke Rounded/core-free-icons and repository source under MIT.",
+  "fullIconSetSaved": false,
+  "fullSourceSha256": null,
+  "sourceHashNote": "The first fetch retained only the chosen SVG subset before the initial LICENSE URL returned 404. No second full-set fetch was made solely to obtain a hash.",
+  "downloadPurpose": "public SVG subset for private offline UI preview",
+  "additionalIcons": [
+    {
+      "key": "more-vertical",
+      "url": "https://api.iconify.design/hugeicons/more-vertical.svg",
+      "retrievedAt": "2026-10-24T09:20:32.466927+00:00",
+      "status": 200,
+      "svgFile": "hugeicons-more-vertical.svg",
+      "svgSha256": "7b10b151f10447038cf5d60a6829ec6a82a744168637d5bad8c20dda87e7b0c0",
+      "viewBox": "0 0 24 24",
+      "bodySha256": "1424022bfbd2d44b6ab4d21789b2659fa276912307931104afad383184ce3ee3"
+    }
+  ],
+  "unusedRemovedKeys": [
+    "sidebar-left"
+  ],
+  "productionModule": "src/visuals/organ-icons.ts",
+  "productionModuleSha256": "012ae8289505602ba6ec3cc20ecd4f7a8b40e23201b29a817b5ea53796cf2d00",
+  "licenseFile": "HUGEICONS-LICENSE.txt"
+}

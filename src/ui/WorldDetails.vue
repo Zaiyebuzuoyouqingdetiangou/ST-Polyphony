@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { classifyKnowledge } from '../domain/world-facts';
 import { computed } from 'vue';
+import {recordBody} from '../domain/world';
 import type { QuestionMaterialReader } from '../application/contracts';
 import type { Activity, Person, WorldEvent, WorldSnapshot } from '../domain/world';
 import PersonMaterials from './PersonMaterials.vue';
@@ -60,25 +61,24 @@ function personById(id: string): Person | undefined {
         <template v-if="relatedActivities.length">
           <h3>相关活动</h3>
           <p v-for="activity in relatedActivities" :key="activity.id">
-            {{ activity.title }} · {{ activityStatus(activity) }}
+            {{ recordBody(activity) }} · {{ activityStatus(activity) }}
           </p>
         </template>
         <template v-if="relatedEvents.length">
           <h3>已发生的相关事件</h3>
-          <article v-for="event in relatedEvents" :key="event.id"><button class="bmx-event-link" type="button" @click="emit('select-event', event.id)">{{ event.title }}</button><p v-if="event.correction">已由正文修正：{{ event.correction.reason }}</p><p v-if="event.description !== event.title">{{ event.description }}</p><p v-for="source in event.sources" :key="`${source.kind}:${source.id}`">来源：{{ displaySourceLabel(source, world.id ?? '') }}</p></article>
+          <article v-for="event in relatedEvents" :key="event.id"><button class="bmx-event-link" type="button" @click="emit('select-event', event.id)">{{ recordBody(event) }}</button><p v-if="event.correction">已由正文修正：{{ event.correction.reason }}</p><p v-for="source in event.sources" :key="`${source.kind}:${source.id}`">来源：{{ displaySourceLabel(source, world.id ?? '') }}</p></article>
         </template>
         <template v-if="knownEvents.length">
           <h3>人物获知</h3>
           <article v-for="item in knownEvents" :key="item.eventId">
-            <p>{{ knowledgeLabel(item) }}：<button v-if="item.event" class="bmx-event-link" type="button" @click="emit('select-event', item.eventId)">{{ item.event.title }}</button>：{{ item.reason }}</p>
+            <p>{{ knowledgeLabel(item) }}：<button v-if="item.event" class="bmx-event-link" type="button" @click="emit('select-event', item.eventId)">{{ recordBody(item.event) }}</button>：{{ item.reason }}</p>
             <p v-for="source in item.sources" :key="`${source.kind}:${source.id}`">来源：{{ displaySourceLabel(source, world.id ?? '') }}</p>
           </article>
         </template>
       </template>
       <template v-else-if="selectedActivity">
         <p class="bmx-reader-label">活动 · {{ activityStatus(selectedActivity) }}</p>
-        <h2>{{ selectedActivity.title }}</h2>
-        <p v-if="selectedActivity.description !== selectedActivity.title">{{ selectedActivity.description }}</p>
+        <h2>{{ recordBody(selectedActivity) }}</h2>
         <template v-if="selectedActivity.participantIds.length">
           <h3>参与人物</h3>
           <p v-for="id in selectedActivity.participantIds" :key="id">{{ personById(id)?.name ?? id }}</p>
@@ -89,18 +89,17 @@ function personById(id: string): Person | undefined {
         </template>
         <template v-if="relatedEvents.length">
           <h3>相关已发生事件</h3>
-          <article v-for="event in relatedEvents" :key="event.id"><button class="bmx-event-link" type="button" @click="emit('select-event', event.id)">{{ event.title }}</button><p v-if="event.correction">已由正文修正：{{ event.correction.reason }}</p><p v-if="event.description !== event.title">{{ event.description }}</p><p v-for="source in event.sources" :key="`${source.kind}:${source.id}`">来源：{{ displaySourceLabel(source, world.id ?? '') }}</p></article>
+          <article v-for="event in relatedEvents" :key="event.id"><button class="bmx-event-link" type="button" @click="emit('select-event', event.id)">{{ recordBody(event) }}</button><p v-if="event.correction">已由正文修正：{{ event.correction.reason }}</p><p v-for="source in event.sources" :key="`${source.kind}:${source.id}`">来源：{{ displaySourceLabel(source, world.id ?? '') }}</p></article>
         </template>
       </template>
       <template v-else-if="selectedEvent">
         <p class="bmx-reader-label">推进时依据 · {{ selectedEvent.storyTime ? formatStoryTime(selectedEvent.storyTime.text) : '未提供' }}</p>
-        <h2>{{ selectedEvent.title }}</h2>
+        <h2>{{ recordBody(selectedEvent) }}</h2>
         <p v-if="simulationWindow">幕后时间段：{{ simulationWindow.from.text }} → {{ simulationWindow.to.text }}</p>
-        <p v-if="selectedEvent.correction">已由正文修正：{{ selectedEvent.correction.reason }} <button class="bmx-event-link" type="button" @click="emit('select-event', selectedEvent!.correction!.byEventId)">{{ world.events.find(e => e.id === selectedEvent!.correction!.byEventId)?.title ?? '查看纠正事实' }}</button></p>
-        <p v-if="selectedEvent.description !== selectedEvent.title">{{ selectedEvent.description }}</p>
+        <p v-if="selectedEvent.correction">已由正文修正：{{ selectedEvent.correction.reason }} <button class="bmx-event-link" type="button" @click="emit('select-event', selectedEvent!.correction!.byEventId)">{{ recordBody(world.events.find(e => e.id === selectedEvent!.correction!.byEventId) ?? {}) || '查看纠正事实' }}</button></p>
         <template v-if="selectedEvent!.activityId && world.activities.find(item => item.id === selectedEvent!.activityId)">
           <h3>所属活动</h3>
-          <button class="bmx-event-link" type="button" @click="emit('select-activity', selectedEvent!.activityId!)">{{ world.activities.find(item => item.id === selectedEvent!.activityId)?.title }}</button>
+          <button class="bmx-event-link" type="button" @click="emit('select-activity', selectedEvent!.activityId!)">{{ recordBody(world.activities.find(item => item.id === selectedEvent!.activityId) ?? {}) }}</button>
         </template>
         <template v-if="selectedEvent.participantIds.length">
           <h3>相关人物</h3>

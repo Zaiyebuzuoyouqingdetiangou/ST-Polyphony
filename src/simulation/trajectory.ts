@@ -1,5 +1,7 @@
 import type { ModelRequest, ModelRequester, StoryTurn } from '../application/contracts';
 import type { SourcePerson } from '../domain/source-people';
+import { recordBody } from '../domain/world';
+import { storyMinutes } from '../host/story-clock';
 import type { ActivityStatus, SimulationWindow } from '../domain/world';
 import type { NpcWorldState } from '../domain/world-state';
 import { characterCount } from '../history/batches';
@@ -12,7 +14,7 @@ import {foundationAsOf} from '../domain/world-foundation';
 
 export interface AsOfBasis {
   backgrounds: Array<{ personId: string; text: string; eventIds: string[]; sourceSeqs: number[] }>;
-  activities: Array<{ id: string; title: string; description: string; status: ActivityStatus; participantIds: string[]; eventIds: string[]; sourceSeqs: number[] }>;
+  activities: Array<{ id: string; title?: string; description: string; status: ActivityStatus; participantIds: string[]; eventIds: string[]; sourceSeqs: number[] }>;
   knowledge: Array<{ personId: string; eventId: string; reason: string; sourceSeqs: number[] }>;
 }
 export interface PreparedTrajectory {
@@ -178,8 +180,8 @@ export function parsePreparedTrajectory(draft: Record<string, any>, input: Prepa
   const activities: AsOfBasis['activities'] = [];
   for (const item of list(basis.activities)) {
     const refs = evidence(item); const participantIds = strings(item.participantIds).filter(id => people.has(id));
-    if (typeof item.id !== 'string' || !input.state.activities.some(a => a.id === item.id) || !item.title || !participantIds.length || !['planned', 'active', 'waiting', 'completed'].includes(item.status) || !(refs.eventIds.length || refs.sourceSeqs.length)) continue;
-    activities.push({ id: item.id, title: item.title, description: typeof item.description === 'string' ? item.description : item.title, status: item.status, participantIds, ...refs });
+    if (typeof item.id !== 'string' || !input.state.activities.some(a => a.id === item.id) || !recordBody(item) || !participantIds.length || !['planned', 'active', 'waiting', 'completed'].includes(item.status) || !(refs.eventIds.length || refs.sourceSeqs.length)) continue;
+    activities.push({ id: item.id, description:recordBody(item), status: item.status, participantIds, ...refs });
   }
   const knowledge: AsOfBasis['knowledge'] = [];
   for (const item of list(basis.knowledge)) if (people.has(item.personId) && events.has(item.eventId) && typeof item.reason === 'string' && (validSeqs(item.sourceSeqs).length || evidence(item).eventIds.length)) knowledge.push({ personId: item.personId, eventId: item.eventId, reason: item.reason, sourceSeqs: validSeqs(item.sourceSeqs) });
@@ -206,6 +208,23 @@ export function savedWindowChain(state: NpcWorldState): SimulationWindow[] | nul
 }
 export function savedEndpoint(state: NpcWorldState) { return savedWindowChain(state)?.at(-1)?.to ?? null; }
 
+/** Old simulation windows stored a full Gregorian range as their right-hand boundary. */
+export function boundaryClock(text: string): string | null {
+  if (storyMinutes(text) !== null) return text;
+  const [left, right, ...extra] = text.split(' → ');
+  const start = storyMinutes(left), end = storyMinutes(right);
+  return !extra.length && start !== null && end !== null && end >= start ? right : null;
+}
+
+export function savedStoryClock(state: NpcWorldState): string | null {
+  const time = state.storyTime;
+  if (!time) return null;
+  if (storyMinutes(time.text) !== null) return time.text;
+  const source = time.source;
+  const saved = source?.kind === 'simulation' && state.simulationRanges?.find(window => window.id === source.id);
+  return saved && saved.to.text === time.text && saved.to.sourceSeqs.length ? boundaryClock(time.text) : null;
+}
+
 export function priorWindowIds(state: NpcWorldState, window?: SimulationWindow): Set<string> {
   if (!window) return new Set((state.simulationRanges ?? []).map(w => w.id));
   const chain=savedWindowChain(state);
@@ -223,14 +242,14 @@ export function projectAsOf(state: NpcWorldState, basis: AsOfBasis, window?: Sim
   const pastKnowledge = state.knowledge.filter(k => k.sources.some(s => s.kind === 'simulation' && before.has(s.id)));
   const knownIds = new Set(pastKnowledge.map(k => k.eventId));
   const events = state.events.filter(e => basisEvents.has(e.id) || knownIds.has(e.id) || !!e.simulationWindowId && before.has(e.simulationWindowId)).sort((a, b) => (ranks.get(a.simulationWindowId ?? '') ?? -1) - (ranks.get(b.simulationWindowId ?? '') ?? -1));
-  const activities = new Map(basis.activities.map(a => [a.id, { id: a.id, title: a.title, description: a.description, status: a.status, participantIds: a.participantIds, sources: [] as import('../domain/world').SourceRef[] }]));
+  const activities = new Map(basis.activities.map(a => [a.id, { id: a.id, ...(a.title?{title:a.title}:{}), description:recordBody(a), status: a.status, participantIds: a.participantIds, sources: [] as import('../domain/world').SourceRef[] }]));
   const pastChanges = new Map<string, import('../domain/world').ActivityChange>();
   const applyEvent = (event: typeof events[number]) => {
     if (!isEffectiveEvent(event) || !event.activityId || !event.activityChange) return;
     const old = activities.get(event.activityId); const change = { ...pastChanges.get(event.activityId), ...event.activityChange };
     pastChanges.set(event.activityId, change);
     if (old) activities.set(old.id, { ...old, ...change });
-    else if (change.title && change.participantIds && change.status) activities.set(event.activityId, { id: event.activityId, title: change.title, description: change.description ?? '', status: change.status, participantIds: change.participantIds, sources: event.sources });
+    else if (recordBody(change) && change.participantIds && change.status) activities.set(event.activityId, { id: event.activityId, ...(change.title?{title:change.title}:{}), description:recordBody(change), status: change.status, participantIds: change.participantIds, sources: event.sources });
   };
   for (const event of events.filter(e => !e.simulationWindowId || !before.has(e.simulationWindowId))) applyEvent(event);
   for (const windowId of before) {

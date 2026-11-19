@@ -1,5 +1,6 @@
 import { createGouhuaDialogCore } from './gouhua-dialog-core.js';
 import { gouhuaDialogCss } from './gouhua-dialog-style.js';
+import { bindDialogViewport } from '../dialog-layout.js';
 
 const deepestActiveElement = documentRef => { let current = documentRef?.activeElement ?? null; while (current?.shadowRoot?.activeElement) current = current.shadowRoot.activeElement; return current; };
 const restoreFocus = element => { try { element?.focus?.({ preventScroll: true }); } catch { element?.focus?.(); } };
@@ -14,7 +15,6 @@ export function createDialogManager({ documentRef = globalThis.document, $ = glo
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `<style>${gouhuaDialogCss}</style>`;
   let effectiveTheme = 'day';
-  let dialogFontUrl = '', dialogFontLink = null;
   const core = createGouhuaDialogCore({
     $,
     mount: { appendChild: element => root.appendChild(element) },
@@ -23,7 +23,11 @@ export function createDialogManager({ documentRef = globalThis.document, $ = glo
     captureFocus: () => deepestActiveElement(documentRef),
     restoreFocus,
     schedule,
-    subscribeContextChange,
+    subscribeContextChange: close => {
+      const stopViewport = documentRef.defaultView ? bindDialogViewport(host, documentRef.defaultView) : () => {};
+      const stopContext = subscribeContextChange?.(close);
+      return () => { stopViewport(); stopContext?.(); };
+    },
   });
   const info = ({ title = '', body = '', note = '', confirmText = '知道了' } = {}) => core.choose({ title, body, note, choices: [{ value: true, label: confirmText, primary: true }] }).then(value => value === true);
   return Object.freeze({
@@ -36,20 +40,17 @@ export function createDialogManager({ documentRef = globalThis.document, $ = glo
     hasActive: core.hasActive,
     cancelTop: core.cancelActive,
     closeAll: core.cancelActive,
-    setAppearance({ mode = 'auto', effectiveTheme: nextTheme = 'day', palette = {}, fixedScale = 1, family = '', fontCssUrl = '' } = {}) {
+    setAppearance({ mode = 'auto', effectiveTheme: nextTheme = 'day', palette = {}, scale = .85, fixedScale = 1, family = '' } = {}) {
       effectiveTheme = nextTheme === 'night' ? 'night' : 'day';
       host.setAttribute('data-theme-mode', mode); host.setAttribute('data-effective-theme', effectiveTheme);
+      host.style?.setProperty?.('--qqj-ui-scale', String(scale));
+      host.style?.setProperty?.('--qqj-ui-fixed-scale', String(fixedScale));
       host.style?.setProperty?.('--qqj-dialog-scale', String(Number.isFinite(Number(fixedScale)) ? Number(fixedScale) : 1));
       for (const [name, value] of Object.entries({ sheet: palette.panel, surface: palette.paper, ink: palette.ink, soft: palette.soft, divider: palette.line, primary: palette.knot, 'on-primary': palette.onPrimary })) if (value) host.style?.setProperty?.(`--qqj-dialog-${name}`, value);
-      const safeFamily = fontCssUrl && typeof family === 'string' ? family.replace(/["\\\r\n]/g, ' ').replace(/\s+/g, ' ').trim() : '';
-      host.style?.setProperty?.('--qqj-dialog-font', safeFamily ? `"${safeFamily}"` : 'system-ui');
-      if (fontCssUrl !== dialogFontUrl) {
-        dialogFontLink?.remove?.(); dialogFontLink = null; dialogFontUrl = fontCssUrl;
-        if (fontCssUrl) {
-          dialogFontLink = documentRef.createElement('link'); dialogFontLink.rel = 'stylesheet'; dialogFontLink.href = fontCssUrl;
-          dialogFontLink.setAttribute('data-qqj-dialog-font', 'true'); root.appendChild(dialogFontLink);
-        }
-      }
+      host.style?.setProperty?.('--qqj-dialog-font', family ? `"${family}", system-ui` : 'system-ui');
+      const active = root.querySelector('#sp-addon-dialog');
+      active?.classList.toggle('sp-day', effectiveTheme === 'day');
+      active?.classList.toggle('sp-night', effectiveTheme === 'night');
     },
   });
 }

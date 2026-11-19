@@ -1,7 +1,26 @@
 import { getHostContext } from './host-context';
+import {defaultSmellSchedule,type SmellSchedule} from '../domain/public-messages';
 
 export function createPluginSettings(getContext = getHostContext) {
   return {
+    getSmellSchedule(scopeId:string):SmellSchedule {
+      const settings=getContext()?.extensionSettings?.['st-dollars'] as {smellSchedules?:Record<string,Partial<SmellSchedule>>}|undefined;
+      const schedule=settings?.smellSchedules?.[scopeId];
+      return {
+        everyReplies:typeof schedule?.everyReplies==='number'&&Number.isSafeInteger(schedule.everyReplies)&&schedule.everyReplies>0?schedule.everyReplies:defaultSmellSchedule.everyReplies,
+        enabledAfter:typeof schedule?.enabledAfter==='number'&&Number.isSafeInteger(schedule.enabledAfter)&&schedule.enabledAfter>=0?schedule.enabledAfter:null,
+      };
+    },
+    saveSmellSchedule(scopeId:string,schedule:SmellSchedule) {
+      const context=getContext(),settings=context?.extensionSettings;
+      if(!settings||typeof context?.saveSettingsDebounced!=='function')throw Error('当前无法保存嗅的更新设置。');
+      const existing=settings['st-dollars'];
+      const own=existing&&typeof existing==='object'?existing as Record<string,unknown>:{};
+      const stored=own.smellSchedules;
+      const schedules=stored&&typeof stored==='object'&&!Array.isArray(stored)?stored:{};
+      settings['st-dollars']={...own,smellSchedules:{...schedules,[scopeId]:schedule}};
+      context.saveSettingsDebounced();
+    },
     getEveryReplies(): number {
       const own = getContext()?.extensionSettings?.['st-dollars'] as Record<string, unknown> | undefined;
       const value = own?.developmentEveryReplies;

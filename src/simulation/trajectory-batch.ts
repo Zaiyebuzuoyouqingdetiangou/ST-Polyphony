@@ -1,5 +1,6 @@
 import type { ModelRequester, StoryTurn } from '../application/contracts';
 import type { SourcePerson } from '../domain/source-people';
+import {recordBody} from '../domain/world';
 import type { Activity, ActivityChange, SimulationWindow, WorldEvent } from '../domain/world';
 import type { NpcWorldState } from '../domain/world-state';
 import { activityChange, applyCalibration, eligibleCalibration, modelReferenceContract, type Calibration } from './calibration';
@@ -10,10 +11,10 @@ import {returnedIdentity} from './returned-identity';
 
 export const BATCH_TRAJECTORY_INSTRUCTIONS = `创作所选历史范围内正文镜头外的人物生活，一次回答完成过去起点、故事时间分段、人物选择、校准和实际结果。这是创作，不是抽取漏记：正文未写不等于没有发生，允许依据人物身份、性格、关系和动机，在时间段内创作新的事务、行动及后果。考虑所有人物各自的生活，允许平静；不要代替故事user回应，不把所有未出镜人物都安排等待。不输出思考过程。
 正式正文优先；正文中的草稿、HTML注释、参考/图片说明不能冒充已发生事实。输入turn.calibrationEligible=false只供时间/镜头参考，不作正文校准依据；幕后新进展不改标正文来源。people.description是当前已加载档案，仅作作者参考；历史依据支持的身份和背景才可用于过去，不能把当前档案直接填入initialBasis。当前活动不搬回过去，不让人物提前知道未来；既定背景和过去知情缺依据时保持未知，这不禁止创作镜头外的新行动。既有正文场景不要重写成新增幕后，不捏造或改写原文事实。人工内容保留。初始过去状态须有已提供正文事实或原文来源；旧generated记录不能独立证明正文。
-返回JSON：{initialBasis:{backgrounds:[{personId,text,eventIds,sourceSeqs}],activities:[{id,title,description,status,participantIds,eventIds,sourceSeqs}],knowledge:[{personId,eventId,reason,sourceSeqs}]},boundaries:[{key,id?,text,sourceSeqs}],segments:[{id?,key,kind:"elapsed|current",from,to,throughSeq,usedFactIds:[],activities:[],newEvents:[],knowledge:[],quietReason?,calibration?,continuingEffects:[],currentActivityUpdates:[]}]}。
+返回JSON：{initialBasis:{backgrounds:[{personId,text,eventIds,sourceSeqs}],activities:[{id,description,status,participantIds,eventIds,sourceSeqs}],knowledge:[{personId,eventId,reason,sourceSeqs}]},boundaries:[{key,id?,text,sourceSeqs}],segments:[{id?,key,kind:"elapsed|current",from,to,throughSeq,usedFactIds:[],activities:[],newEvents:[],knowledge:[],quietReason?,calibration?,continuingEffects:[],currentActivityUpdates:[]}]}。
 selected.mode=rework表示重补全部requiredRanges/requiredWindowIds，savedWindows只表示旧处理位置，不代表已有人物生活；不得跳过旧窗从末端续写。每个要求旧窗都返回实际结果或明确quietReason，不省略。initialBasis只针对firstRequiredBoundary之前，允许空；不得把后窗事实或状态填成该起点的过去。继续任务仍只完成列明的requiredRanges，不重复刚保存的部分。
 边界按故事顺序，时间保留原文相对表述；每段from/to引用边界key或ID，前后连续，throughSeq是本段依据截止楼，覆盖所选范围。重补旧段沿用原窗ID和原切点；所选结束在旧窗内部时仍用原窗id，to可为所选范围内新边界，仅补局部结果，不改变旧窗覆盖。最后段不必然是当前；仅selected.isCurrent允许currentActivityUpdates。
-activities中既有活动用id，新活动用key，含title/description/status(planned|active|waiting|completed)/participantIds；不要克隆已有活动。newEvents仅填真正新增结果：{key,activityId,title,description,participantIds,storyTime?,activityChange?,continuingForPersonIds?}，description交代行动、原因与实际后果；activityChange只填该时点明确变化。旧事件仅列usedFactIds，不把旧ID/正文原句放newEvents冒充新结果。knowledge:{personId,eventId,reason}须有实际获知途径，允许引用旧事件；参与不自动等于知情，世界事实也不自动公开。
+activities中既有活动用id，新活动用key，含description/status(planned|active|waiting|completed)/participantIds；不要克隆已有活动。newEvents仅填真正新增结果：{key,activityId,description,participantIds,storyTime?,activityChange?,continuingForPersonIds?}，description交代行动、原因与实际后果；activityChange只填该时点明确变化。completed表示整条事项收束，也适用于当窗结清的独立短事。只办完一步时，把过程和结果写进newEvents，沿原ID继续推进或等下一步。旧事件仅列usedFactIds，不把旧ID/正文原句放newEvents冒充新结果。knowledge:{personId,eventId,reason}须有实际获知途径，允许引用旧事件；参与不自动等于知情，世界事实也不自动公开。
 同一回答活动/事件key全批唯一，仅可引用本段或前段，知识可引用旧事件或新事件key。没有新变化的段明确quietReason，不为凑条数强造情节；但不能只因正文没有记载镜头外行动就判断整段平静。initialBasis.activities仅引用已知活动ID。校准格式沿input.calibrationContract：正文新增事实须有实际原楼，只纠正被正文明确推翻的部分，保留已真实发生的内容，不因摘要未提细节就整条作废；保留旧说法及知情的作废/报告性质，不自动知道真相。不要重复已有知情。
 只输出完整JSON，不省略后段，不加额外请求或材料申请。`;
 
@@ -145,12 +146,12 @@ export function applyTrajectoryBatch(value: unknown, input: TrajectoryBatchInput
         const change = activityChange({ ...item, ...(item.personIds ? { participantIds: participants } : {}) }, people);
         if (Object.keys(change).length && !calibrationActivities.has(known.id)) changes.set(known.id, change);
       } else {
-        if (typeof item.title !== 'string' || !item.title.trim() || !participants.length) continue;
+        if (!recordBody(item) || !participants.length) continue;
         if (![item.key, reference].some(alias => typeof alias === 'string' && allKeys.get(alias.trim()) === 1)) continue;
         const id = newId(); const change = activityChange(item, people);
-        const activity: Activity = { id, title: item.title.trim(), description: typeof item.description === 'string' ? item.description.trim() : '', status: change.status ?? 'planned', participantIds: participants, sources: [source], currentStateWindowId: window.id };
+        const activity: Activity = { id, description:recordBody(item), status: change.status ?? 'planned', participantIds: participants, sources: [source], currentStateWindowId: window.id };
         activities.set(id, activity); pastActivities.set(id, activity); bind(activityRefs, item.key, id); if (reference) bind(activityRefs, reference, id);
-        changes.set(id, { title: activity.title, description: activity.description, status: activity.status, participantIds: participants });
+        changes.set(id, { description:activity.description, status: activity.status, participantIds: participants });
         segmentChanges++; addedActivities++;
       }
     }
@@ -162,14 +163,14 @@ export function applyTrajectoryBatch(value: unknown, input: TrajectoryBatchInput
       const reference = item.activityId ?? item.activityRef ?? null;
       const activityId = typeof reference === 'string' ? activityRefs.get(reference) ?? reference : null;
       if (reference !== null && (!activityId || !activities.has(activityId))) continue;
-      if (typeof item.title !== 'string' || !item.title.trim()) continue;
+      if (!recordBody(item)) continue;
       const participants = strings(item.participantIds ?? item.personIds); if (participants.some(id => !people.has(id))) continue;
       if (typeof item.key === 'string' && allKeys.get(item.key.trim()) !== 1) continue;
       const id = newId(); bind(eventRefs, item.key, id);
       const manual = activityId && activities.get(activityId)?.sources.some(s => s.kind === 'manual');
       const change = manual ? {} : activityChange(item.activityChange, people);
       const statedTime = asObject(item.storyTime)?.text ?? item.storyTime;
-      const event: WorldEvent = { id, activityId, title: item.title.trim(), description: typeof item.description === 'string' && item.description.trim() ? item.description.trim() : item.title.trim(), participantIds: participants, storyTime: { text: typeof statedTime === 'string' && statedTime.trim() ? statedTime.trim() : source.label, source }, sources: [source], simulationWindowId: window.id, ...(Object.keys(change).length ? { activityChange: change } : {}), ...(Array.isArray(item.continuingForPersonIds) ? { continuingForPersonIds: strings(item.continuingForPersonIds).filter(id => people.has(id)) } : {}) };
+      const event: WorldEvent = { id, activityId, description:recordBody(item), participantIds: participants, storyTime: { text: typeof statedTime === 'string' && statedTime.trim() ? statedTime.trim() : source.label, source }, sources: [source], simulationWindowId: window.id, ...(Object.keys(change).length ? { activityChange: change } : {}), ...(Array.isArray(item.continuingForPersonIds) ? { continuingForPersonIds: strings(item.continuingForPersonIds).filter(id => people.has(id)) } : {}) };
       events.push(event); segmentChanges++; addedEvents++;
       if (activityId && Object.keys(change).length) {
         const current = activities.get(activityId);
@@ -182,7 +183,7 @@ export function applyTrajectoryBatch(value: unknown, input: TrajectoryBatchInput
         }
         const old = pastActivities.get(activityId);
         if (old) pastActivities.set(activityId, { ...old, ...change });
-        else if (change.title && change.status && change.participantIds) pastActivities.set(activityId, { id: activityId, title: change.title, description: change.description ?? '', status: change.status, participantIds: change.participantIds, sources: [source] });
+        else if (recordBody(change) && change.status && change.participantIds) pastActivities.set(activityId, { id: activityId, description:recordBody(change), status: change.status, participantIds: change.participantIds, sources: [source] });
       }
     }
     for (const [id, change] of changes) {

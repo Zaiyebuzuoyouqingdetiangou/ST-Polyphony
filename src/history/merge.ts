@@ -1,3 +1,4 @@
+import {recordBody} from '../domain/world';
 import type { SourcePerson } from '../domain/source-people';
 import type { Activity, SourceRef } from '../domain/world';
 import type { NpcWorldState } from '../domain/world-state';
@@ -83,13 +84,13 @@ export function mergeHistoryBatch(input: { baseline: NpcWorldState; candidate: N
   for (const raw of activities) {
     const item = obj(raw); if (!item) { skipped++; continue; }
     const key = text(item.key); const existingId = idOf(item.id); const existing = candidateActivities.find(activity => activity.id === existingId && historyActivityIds.has(activity.id));
-    const title = text(item.title ?? item.name); const participants = normalizePeople(item.participantIds ?? item.personIds ?? item.people); const sources = sourceFor(item.sourceSeqs ?? item.floorIds);
+    const description = recordBody({description:item.description,title:item.title??item.name}); const participants = normalizePeople(item.participantIds ?? item.personIds ?? item.people); const sources = sourceFor(item.sourceSeqs ?? item.floorIds);
     if (existingId && baseActivityIds.has(existingId)) { activityAliases.bind(item, existingId); adopted = true; continue; }
-    if (!sources.length || (!existing && (!title || !participants.length))) { skipped++; continue; }
+    if (!sources.length || (!existing && (!description || !participants.length))) { skipped++; continue; }
     const id = existing?.id ?? uuid(); activityAliases.bind(item, id);
     const status = statuses[text(item.status).toLowerCase()];
     const participantIds = existing ? [...new Set([...existing.participantIds.filter(personId => personIds.has(personId)), ...participants])] : participants;
-    const next: Activity = existing ? { ...existing, title: title || existing.title, description: text(item.description) || existing.description, status: status ?? existing.status, participantIds, sources: appendSources(existing.sources, sources) } : { id, title, description: text(item.description) || title, status: status ?? 'planned', participantIds, sources };
+    const next: Activity = existing ? { ...existing, description: typeof item.description === 'string' && item.description.trim() ? item.description : existing.description, status: status ?? existing.status, participantIds, sources: appendSources(existing.sources, sources) } : { id, description, status: status ?? 'planned', participantIds, sources };
     const index = candidateActivities.findIndex(entry => entry.id === id); if (index >= 0) candidateActivities[index] = next; else candidateActivities.push(next);
     historyActivityIds.add(id); adopted = true;
   }
@@ -97,7 +98,7 @@ export function mergeHistoryBatch(input: { baseline: NpcWorldState; candidate: N
   const eventIdFor = (reference: string) => eventAliases.ambiguous.has(reference) ? '' : knownEventIds.has(reference) ? reference : eventKeys.get(reference) ?? '';
   for (const raw of events) {
     const item = obj(raw); if (!item) { skipped++; continue; }
-    const title = text(item.title ?? item.name); const sources = sourceFor(item.sourceSeqs ?? item.floorIds); const participants = normalizePeople(item.participantIds ?? item.personIds ?? item.people);
+    const description = recordBody({description:item.description,title:item.title??item.name}); const sources = sourceFor(item.sourceSeqs ?? item.floorIds); const participants = normalizePeople(item.participantIds ?? item.personIds ?? item.people);
     const providedId = idOf(item.id);
     if (providedId && baseEventIds.has(providedId)) { eventAliases.bind(item, providedId); adopted = true; continue; }
     const existingEvent = providedId && candidateEvents.find(event => event.id === providedId);
@@ -105,9 +106,9 @@ export function mergeHistoryBatch(input: { baseline: NpcWorldState; candidate: N
     const reference = idOf(item.activityId ?? item.activity); const activityId = reference ? activityIdFor(reference) : null;
     const validActivity = activityId === null ? !reference : candidateActivities.some(activity => activity.id === activityId);
     const worldLevel = item.worldLevel === true || item.worldEvent === true;
-    if (!title || !sources.length || !validActivity || (!participants.length && !worldLevel)) { skipped++; continue; }
+    if (!description || !sources.length || !validActivity || (!participants.length && !worldLevel)) { skipped++; continue; }
     const id = uuid(); eventAliases.bind(item, id);
-    candidateEvents.push({ id, activityId, title, description: text(item.description) || title, storyTime: text(item.storyTime ?? item.story_time) ? { text: text(item.storyTime ?? item.story_time), source: sources[0] } : null, participantIds: participants, sources }); adopted = true;
+    candidateEvents.push({ id, activityId, description, storyTime: text(item.storyTime ?? item.story_time) ? { text: text(item.storyTime ?? item.story_time), source: sources[0] } : null, participantIds: participants, sources }); adopted = true;
   }
   for (const raw of knowledgeItems) {
     const item = obj(raw); if (!item) { skipped++; continue; }

@@ -1,6 +1,7 @@
 import type { SourcePerson } from '../domain/source-people';
 import type { NpcWorldState } from '../domain/world-state';
 import type {StoryTurn} from '../application/contracts';
+import {savedStoryClock} from './trajectory';
 import { storyMinutes,normalizeStoryTime } from '../host/story-clock';
 
 export interface LifeRoutine { personId: string; activeHours: Array<[number, number]>; basis?: string; tentative?: boolean }
@@ -17,7 +18,7 @@ function covered(start: number, end: number, rests: Array<[number, number]>) {
   return false;
 }
 export function developmentGate(state: NpcWorldState, people: SourcePerson[], endClock: string | null) {
-  const start = storyMinutes(state.storyTime?.text), end = storyMinutes(endClock);
+  const start = storyMinutes(savedStoryClock(state)), end = storyMinutes(endClock);
   if (start === null || end === null || end <= start) return { generate: true, reason: 'unknown-time' };
   for (const person of people.filter(person => person.specialRole !== 'user')) {
     const rests: Array<[number,number]> = [];
@@ -38,10 +39,10 @@ export function developmentGate(state: NpcWorldState, people: SourcePerson[], en
   }
   return {generate:false,reason:'known-rest-throughout'};
 }
-export function mergeLifeRhythm(state: NpcWorldState, people: SourcePerson[], data: Record<string,unknown>, endClock: string | null,turns:StoryTurn[]=[]): Pick<NpcWorldState,'developmentRoutines'|'developmentArrangements'> {
+export function mergeLifeRhythm(state: NpcWorldState, people: SourcePerson[], data: Record<string,unknown>, endClock: string | null,turns:StoryTurn[]=[],{fillMissing=true}={}): Pick<NpcWorldState,'developmentRoutines'|'developmentArrangements'> {
   const ids = new Set(people.filter(person => person.specialRole !== 'user').map(person => person.id));
   const routines = new Map((state.developmentRoutines ?? []).map(item => [item.personId,item]));
-  for(const personId of ids)if(!routines.has(personId))routines.set(personId,{personId,activeHours:[]});
+  if(fillMissing)for(const personId of ids)if(!routines.has(personId))routines.set(personId,{personId,activeHours:[]});
   if (Array.isArray(data.routines)) for (const item of data.routines) {
     if (!item || !ids.has(item.personId)) continue;
     const activeHours=validActiveHours([item.activeHours])?[item.activeHours]:item.activeHours;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import {recordBody} from '../domain/world';
 import type { ControllerState } from '../application/contracts';
 import { deriveCurrentActivities, activityStatusLabel } from './current-activities';
 import { displaySourceLabel } from './source-label';
@@ -21,15 +22,14 @@ const items = computed(() => deriveCurrentActivities(props.state.world));
     </div>
     <article v-for="item in items" :key="item.activity.id" class="bmx-activity-card">
       <header class="bmx-activity-heading">
-        <div><span class="bmx-activity-status" :data-status="item.activity.status">{{ activityStatusLabel(item.activity) }}</span><h2>{{ item.activity.title }}</h2></div>
+        <div><span class="bmx-activity-status" :data-status="item.activity.status">{{ activityStatusLabel(item.activity) }}</span></div>
       </header>
       <p class="bmx-activity-people"><span>参与人物</span>{{ item.participants.length ? item.participants.join('、') : '暂无指定参与人物' }}</p>
-      <p class="bmx-activity-description">{{ item.activity.description }}</p>
+      <p class="bmx-activity-description">{{ recordBody(item.activity) }}</p>
       <section class="bmx-activity-record" aria-label="最近记录">
         <h3>最近记录</h3>
         <template v-if="item.recentEvent">
-          <strong>{{ item.recentEvent.title }}</strong>
-          <p>{{ item.recentEvent.description }}</p>
+          <p>{{ recordBody(item.recentEvent) }}</p>
           <small v-if="item.recentEvent.storyTime">{{ formatStoryTime(item.recentEvent.storyTime.text) }}</small>
           <small v-if="item.recentEvent.sources.length">来源：{{ item.recentEvent.sources.map(source => displaySourceLabel(source, state.world.id ?? '')).join('、') }}</small>
         </template>

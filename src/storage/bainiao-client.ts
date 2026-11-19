@@ -1,13 +1,18 @@
 import { getHostContext } from '../host/host-context';
 import { jsonRequestHeaders } from '../host/request-headers';
 import {recordDiagnostic,diagnosticError,type DiagnosticTrace} from '../diagnostics/development';
+import { createTauriBackendFetch, isTauriTavern } from './tauri-backend.js';
 
 export class StorageError extends Error {
   constructor(readonly status: number, readonly code: string, message: string) { super(message); this.name = 'StorageError'; }
 }
 export interface BainiaoBatchRow {recordId:string;status:number;envelope?:{revision:number;data:unknown}}
 
-export function createBainiaoClient({ fetchImpl = (...args: Parameters<typeof fetch>) => fetch(...args), getHeaders = () => getHostContext()?.getRequestHeaders?.() as HeadersInit ?? {}, baseUrl = '' }: { fetchImpl?: typeof fetch; getHeaders?: () => HeadersInit; baseUrl?: string } = {}) {
+// TauriTavern has no Node server plugins; the default transport serves the same BaiNiao routes from TT's native store.
+let tauriFetch: typeof fetch | undefined;
+const defaultFetch: typeof fetch = (...args) => isTauriTavern() ? (tauriFetch ??= createTauriBackendFetch())(...args) : fetch(...args);
+
+export function createBainiaoClient({ fetchImpl = defaultFetch, getHeaders = () => getHostContext()?.getRequestHeaders?.() as HeadersInit ?? {}, baseUrl = '' }: { fetchImpl?: typeof fetch; getHeaders?: () => HeadersInit; baseUrl?: string } = {}) {
   async function request(path:string,method:'GET'|'PUT'|'POST',body?:unknown,diagnostic?:DiagnosticTrace) {
     const url = `${baseUrl.replace(/\/$/, '')}/api/plugins/st-bainiaodata/v1/${path}`;
     let response: Response;

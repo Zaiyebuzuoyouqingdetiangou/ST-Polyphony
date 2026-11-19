@@ -84,6 +84,16 @@ test('uses the same native slots as 千千结 TT adapter so one local BaiNiao st
   assert.equal(other.status, 404);
 });
 
+test('record IDs skip unreadable slots and follow the server file-name order', async () => {
+  const { store, globalRef } = createGlobal(), fetch = createTauriBackendFetch({ globalRef });
+  for (const id of ['b', 'a-1', 'a']) await send(fetch, `records/st-dollars/list/${id}`, 'PUT', { data: id, expectedRevision: 0 });
+  const [table] = [...store.files.keys()][0].split('/').slice(1, 2);
+  store.files.set(`qqj-bainiao-v1/${table}/broken`, '{"format":"qqj-tt-json-v2","serialized":"{"}');
+  const ids = await send(fetch, 'record-ids/st-dollars/list');
+  assert.equal(ids.status, 200);
+  assert.deepEqual(ids.payload, ['a', 'b', 'a-1'].map(id => `${id}.json`).sort((x, y) => x.localeCompare(y)).map(name => name.slice(0, -5)));
+});
+
 test('concurrent writers of one record are serialized and only one wins the revision', async () => {
   const { globalRef } = createGlobal(), fetch = createTauriBackendFetch({ globalRef });
   const results = await Promise.all([1, 2, 3].map(value => send(fetch, 'records/st-dollars/c/r', 'PUT', { data: value, expectedRevision: 0 })));

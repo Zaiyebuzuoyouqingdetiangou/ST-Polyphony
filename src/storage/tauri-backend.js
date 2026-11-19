@@ -190,14 +190,21 @@ export function createTauriBackendFetch({ globalRef = globalThis } = {}) {
     const keys = await locked(globalRef, lockName, () => store.listKeys({ namespace: STORAGE_NAMESPACE, table }));
     if (!Array.isArray(keys)) throw error(500, 'Invalid storage listing');
     const ids = [];
-    for (const key of keys) {
+    // Keys are hashes, so the record ID has to be read from each slot. Read a few at a time,
+    // letting queued writes run between groups. Soft-deleted slots are not listed, as on the server;
+    // an unreadable slot is skipped like a stray file instead of failing the whole listing.
+    for (let start = 0; start < keys.length; start += READ_CONCURRENCY) {
       abort(signal);
-      // Keys are hashes; the record ID lives in the slot. Soft-deleted slots are not listed, as on the server.
-      const slot = await locked(globalRef, lockName, () => read(store, table, key, namespace, collection));
-      if (!slot || key !== await keyFor(slot.recordId)) throw error(500, 'Stored record identity mismatch');
-      if (slot.current) ids.push(slot.recordId);
+      await locked(globalRef, lockName, () => Promise.all(keys.slice(start, start + READ_CONCURRENCY).map(async key => {
+        try {
+          const slot = await read(store, table, key, namespace, collection);
+          if (slot?.current && key === await keyFor(slot.recordId)) ids.push(slot.recordId);
+        } catch {}
+      })));
     }
-    return ids.sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+    abort(signal);
+    // Same order as the server, which sorts the `<recordId>.json` file names.
+    return ids.sort((a, b) => `${a}.json`.localeCompare(`${b}.json`));
   };
 
   const dispatch = async (url, init) => {
